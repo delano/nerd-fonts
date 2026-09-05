@@ -21,6 +21,7 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `generate-font-image-previews.sh`: Generates the preview images for `nerdfonts.com` (i.e. gh-pages) [3]
 * `generate-glyph-info-from-set.py`: Generate the `i_xxx.sh` file from a glyph source (font) file, if the glyphs are named correctly [4]
 * `generate-original-source.py`: Generate `original-source.otf` from single glyph svgs. [5]
+* `generate-provenance-example.sh`: Patch a font with `--provenance`, mark sample text, and render it to PNG with `hb-view` [4]
 * `generate-release-summary.sh`: Helper to generate the release table with zip and xz [3]
 * `generate-sample-set.sh`: Generate one patched font file from each source font (for manual checks) [4]
 * `generate-webfonts.sh`: Generate woff and woff2 font files from the SymbolsOnly font (for the gh-pages) [1]

@@ -3,7 +3,7 @@ name: "Font-Patcher"
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
     paths:
       - 'font-patcher'
       - 'src/glyphs/**'

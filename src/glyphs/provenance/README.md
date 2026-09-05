@@ -44,6 +44,9 @@ Related scripts:
   standard-library-only reference encoder and decoder for marked text.
 - `bin/scripts/test-provenance.py` (listed as `[9]`): `fontTools`-based CI
   validator for patched fonts.
+- `bin/scripts/generate-provenance-example.sh` (listed as `[4]`): patches a
+  font in one or more styles, marks sample text, renders it with `hb-view`, and
+  runs the validator. The quickest way to see the feature working end to end.
 
 `bin/scripts/archive-font-patcher.sh` already sweeps all of `src/glyphs/` into
 the archive, so `mapping.json` ships inside `FontPatcher.zip` with no change to
@@ -297,7 +300,15 @@ family name, which affects `projectName` and `projectNameAbbreviation` in
 
 ## Validating a change
 
-Use a scratch output directory and do not commit generated fonts.
+For a quick end-to-end check, run the example script from anywhere:
+
+```bash
+bin/scripts/generate-provenance-example.sh identical subtle explicit
+```
+
+It writes patched fonts and one PNG per style to `temp/provenance-example/`,
+which is ignored by git. The manual steps below cover the same ground in more
+detail. Use a scratch output directory and do not commit generated fonts.
 
 ```bash
 out=$(mktemp -d)
