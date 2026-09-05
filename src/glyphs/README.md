@@ -10,6 +10,8 @@ Also do not forget to update the table below, because it is reused for the indiv
 The 'Seti and Original' icons (in `original-source.otf`) is automatically generated from the glyphs in `src/svgs`.
 Do not edit and commit changes to that font directly.
 
+The `provenance/` directory is not an icon set: it holds the registry for the opt-in `--provenance` variants derived from the source font (see `provenance/README.md`).
+
 ## Icon sets
 
 | Icon set name          | upstream                                              | version         | license     |
