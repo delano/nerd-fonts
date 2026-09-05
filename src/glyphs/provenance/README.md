@@ -10,6 +10,10 @@ the helper tools, and the measured behaviour. It is written for contributors
 working on this feature and for authors of editors and other tools that want to
 produce or consume provenance-marked text.
 
+The protocol itself (states, encodings, fallback behaviour, and editor semantics)
+is defined in the design document "Inline Typographic Provenance for Nerd
+Fonts". This README covers only how it is wired into this repository.
+
 ## Behaviour
 
 A provenance-aware patched font renders marked text with variants derived from
@@ -73,8 +77,8 @@ PUA_AI(cp) = 0x100000 + cp
 ```
 
 This reserves a PUA counterpart for every Basic Multilingual Plane base
-character without a lookup formula, and does not overlap any allocated glyph
-range in the current patch-set definitions.
+character without a lookup formula. It cannot overlap any glyph set this project
+patches in, because every icon set lives in the BMP PUA or in Plane 15.
 
 Profile `"version": 1` in `mapping.json` covers `U+0021`–`U+00FF` minus the
 general categories `Zs`, `Cc`, and `Cf`: 188 entries, with no space, no
@@ -120,9 +124,12 @@ metadata.
 
 The option lives in the `Symbol Fonts` argument group and uses the same
 optional-value pattern as `--braille`. Given bare, it selects `identical`. It
-is not enabled by `--complete`, so it is always opt-in. For the Symbols Only
-font it logs a warning and does nothing, because variants need base glyphs from
-the source font.
+is not enabled by `--complete`, so it is always opt-in, and a build without
+`--provenance` is unchanged from upstream: the reference builds used in CI have
+no format 14 `cmap` subtable and no `NFProv` tag. For the Symbols Only font it
+logs a warning and does nothing, because variants need base glyphs from the
+source font. Users on the fontconfig fallback route (`10-nerd-font-symbols.conf`)
+therefore get no provenance glyphs.
 
 Per base character, `add_provenance_glyphs()` skips the character when:
 
@@ -169,7 +176,8 @@ which is what makes FontForge emit a format 14 `cmap` subtable on export. The
 `.ai` variant is additionally encoded at its PUA code point; `.human` and
 `.unknown` are created with `createChar(-1, name)` and stay unencoded, so they
 are reachable only through a selector. After the loop the encoding is rebuilt
-as `UnicodeFull`.
+as `UnicodeFull`. Existing base glyphs are never modified; their own kerning and
+features are untouched.
 
 ### Patch order
 
@@ -193,7 +201,9 @@ needed.
 `tag_provenance_version()` runs only when at least one variant was added. It
 inserts `;NFProv 1` (from `projectNameAbbreviation` and `PROVENANCE_PROFILE`)
 immediately before the `Nerd Fonts x.y.z` segment of the Version name (name ID
-5), for example:
+5). The Version name is used because it is the only field that survives into
+every consumer: `font.comment` and `font.fontlog` land in FontForge's private
+`PfEd` table and are invisible to other tools. For example:
 
 ```text
 Version 3.003;NFProv 1;Nerd Fonts 3.5.1
@@ -321,9 +331,12 @@ Measured with FontForge 20251009 and HarfBuzz.
 
 - **Ligatures are lost, and this is a hard limitation.** On FiraCode, `calt`
   ligatures do not form whenever any member of the sequence carries a
-  provenance selector; PUA code points inherit no lookups at all. There is no
-  partial degradation and no workaround in the font. Kerning is likewise not
-  inherited by marked or PUA text.
+  provenance selector; PUA code points inherit no lookups at all. The mechanism:
+  variation selectors are General Category `Mn`, and contextual and ligature
+  lookups that do not set `IgnoreMarks` stop matching across one. This is a
+  property of the protocol, not of the patcher. There is no partial degradation
+  and no workaround in the font. Kerning is likewise not inherited by marked or
+  PUA text.
 - **Fallback is asymmetric.** In a font without provenance glyphs, `base + VS`
   renders as the base glyph followed by a zero-advance selector, while a PUA
   code point renders `.notdef`. The variation-selector encoding is therefore
