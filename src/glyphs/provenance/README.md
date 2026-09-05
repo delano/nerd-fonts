@@ -1,86 +1,103 @@
 # Inline Typographic Provenance
 
-This directory holds the mapping table that `font-patcher --provenance` uses to add
-provenance-aware glyph variants to a font. The variants are derived from the source
-font's own glyphs, not copied from a symbol font like the other sets in `src/glyphs/`.
+> **Status: implementation plan.** This directory currently contains the plan only.
+> `mapping.json`, `font-patcher --provenance`, `nfprov.py`, and
+> `test-provenance.py` are proposed additions; they are not in this checkout.
 
-The protocol itself (states, encodings, fallback behavior, editor semantics) is defined
-in the design document "Inline Typographic Provenance for Nerd Fonts". This README only
-covers how it is wired into this repository.
+This document turns the external proposal _Inline Typographic Provenance for
+Nerd Fonts_ into practical changes for this repository. The source proposal
+describes the protocol as “a lightweight convention for distinguishing
+human-written and AI-written text using Unicode code points embedded directly in
+the text.” It defines the provenance states, encodings, fallback behavior, and
+editor semantics. This plan defines the Nerd Fonts implementation, tooling, and
+release work.
 
-## Motivation
+It is for contributors implementing the feature, not for users of the current
+`font-patcher`.
 
-Text produced by AI tools and text written by people are indistinguishable once pasted.
-The protocol marks provenance per character with Unicode code points, so it survives
-copy and paste of any fragment without a sidecar. A patched font is the presentation
-layer: it renders marked characters with `.human`, `.ai`, and `.unknown` glyph variants
-that keep the base glyph's metrics.
+## Proposed behavior
 
-Two encodings resolve to the same glyph:
+A provenance-aware patched font would render marked text using variants derived
+from the source font's glyphs. Unlike existing glyph sets in `src/glyphs/`, it
+would not copy symbols from a separate symbol font.
 
-| Encoding             | Text                       | Supporting font | Unsupported font |
-|----------------------|----------------------------|-----------------|------------------|
-| Variation selector   | `<base>` + `VS_*`          | variant glyph   | plain base glyph |
-| Private Use Area     | `PUA_AI_<base>`            | `.ai` glyph     | tofu             |
+The proposed encodings are:
 
-## Contents
+| Encoding               | Text                        | Font with provenance glyphs | Font without provenance glyphs |
+| ---------------------- | --------------------------- | --------------------------- | ------------------------------ |
+| Variation selector     | `<base>` followed by `VS_*` | Variant glyph               | Plain base glyph               |
+| Private Use Area (PUA) | `PUA_AI_<base>`             | `.ai` glyph                 | Missing-glyph display          |
 
-* `mapping.json`: The published, versioned mapping (see below). Shipped in `FontPatcher.zip`
-  automatically because `archive-font-patcher.sh` zips all of `src/glyphs/`.
-* `README.md`: This file.
+## Proposed files
 
-## Code point allocation
+- `mapping.json`: versioned registry of allocated code points.
+- `README.md`: this proposal and implementation guide.
+- `bin/scripts/nfprov.py`: reference encoder and decoder.
+- `bin/scripts/test-provenance.py`: CI-only validator for patched fonts.
+
+`bin/scripts/archive-font-patcher.sh` already archives all of `src/glyphs/`.
+Once `mapping.json` exists, that script will include it in `FontPatcher.zip`.
+
+## Code-point allocation
 
 ### Variation selectors
 
-| State           | Selector | Note                     |
-|-----------------|----------|--------------------------|
-| explicit human  | `U+E0100`| VS17                     |
-| ai              | `U+E0101`| VS18                     |
-| unknown         | `U+E0102`| VS19                     |
-| human-edited ai | `U+E0103`| reserved, not generated  |
-| mixed / other   | `U+E0104`| reserved, not generated  |
+| State           | Selector           | Status                  |
+| --------------- | ------------------ | ----------------------- |
+| Explicit human  | `U+E0100` (`VS17`) | Generated               |
+| AI              | `U+E0101` (`VS18`) | Generated               |
+| Unknown         | `U+E0102` (`VS19`) | Generated               |
+| Human-edited AI | `U+E0103` (`VS20`) | Reserved; not generated |
+| Mixed or other  | `U+E0104` (`VS21`) | Reserved; not generated |
 
-These are a private convention between encoders, decoders, and patched fonts. They are
-not registered Unicode variation sequences.
+These selectors would be a private convention shared by encoders, decoders, and
+patched fonts. They are not registered Unicode variation sequences.
 
 ### PUA counterparts
 
-**Do not use Supplementary PUA-A (`U+F0000`-`U+FFFFD`).** Material Design Icons already
-occupy `U+F0001`-`U+F1AF0` there (see the `Material` entry in `setup_patch_set`), so the
-illustrative `U+F0041` example from the design document would collide with an icon.
+Do not allocate provenance glyphs in Supplementary PUA-A
+(`U+F0000`–`U+FFFFD`). The current `Material` patch set occupies
+`U+F0001`–`U+F1AF0` in that range (`font-patcher`, `setup_patch_set`). For
+example, the illustrative `U+F0041` allocation would collide with that set.
 
-The mapping uses Supplementary PUA-B (Plane 16) with a fixed offset:
+Use Supplementary PUA-B (plane 16) instead, with this fixed allocation:
 
 ```text
-PUA_AI(cp) = 0x100000 + cp      for 0x0020 <= cp <= 0xFFFD
+PUA_AI(cp) = 0x100000 + cp    for 0x0020 <= cp <= 0xFFFD
 ```
 
-This covers every BMP base character without a lookup table and cannot overlap any glyph
-set this project patches in (all of which live in the BMP PUA or Plane 15).
+This allocates a PUA counterpart for every Basic Multilingual Plane (BMP) base
+character without a lookup formula. In the current patch-set definitions,
+Supplementary PUA-B does not overlap an allocated glyph range.
 
-The initial profile (`"version": 1`) enumerates only Basic Latin and Latin-1 Supplement
-(`U+0020`-`U+00FF`, whitespace excluded). Everything else is reserved by the formula and
-must not be assigned to any other meaning later.
+The initial profile (`"version": 1`) would list non-whitespace Basic Latin
+and Latin-1 Supplement base characters (`U+0020`–`U+00FF`) that are present in
+the source font. This covers the initial proposal's practical Latin,
+punctuation, and symbol subset. The formula reserves the remaining range; later
+profiles must not give those code points a different meaning.
 
 ### Stability rules
 
-* Once a code point is published in `mapping.json` it is never reassigned or removed.
-* A profile that adds base characters or states bumps `version` and only appends.
-* Any range change must be checked against every `SymStart`/`SymEnd` in `font-patcher`
-  and the [Codepoint Conflicts wiki page][wiki-conflicts] before merging.
+The protocol specification should make the following compatibility rules
+normative:
 
-## `mapping.json` format
+- Published `mapping.json` code points are never reassigned or removed.
+- A profile that adds base characters or states increments `version` and appends
+  entries only.
+- Before changing an allocation range, check every `SymStart` and `SymEnd` in
+  `font-patcher` and the [Codepoint Conflicts wiki page][wiki-conflicts].
+
+## Proposed `mapping.json` format
 
 ```json
 {
   "version": 1,
   "variation_selectors": {
-    "human":   "U+E0100",
-    "ai":      "U+E0101",
+    "human": "U+E0100",
+    "ai": "U+E0101",
     "unknown": "U+E0102",
-    "edited":  "U+E0103",
-    "mixed":   "U+E0104"
+    "edited": "U+E0103",
+    "mixed": "U+E0104"
   },
   "pua": {
     "U+100041": { "base": "U+0041", "provenance": "ai" }
@@ -88,30 +105,34 @@ must not be assigned to any other meaning later.
 }
 ```
 
-The `pua` object is explicit even though the formula is fixed. Consumers must read the
-table, not derive it, so that a future profile can restrict or annotate entries.
+Although the PUA formula is fixed, consumers should read the `pua` table. A
+future profile may restrict an entry or attach additional metadata.
 
-## `font-patcher` integration
+## Proposed `font-patcher` integration
 
-### Command line
+### Command-line option
 
-```
+Add this option to the `Symbol Fonts` argument group:
+
+```text
 --provenance[={identical|subtle|explicit}]
 ```
 
-* Lives in the `Symbol Fonts` argument group next to `--braille`, same `nargs='?'` plus
-  `const` plus `choices` pattern. Default when the option is given: `identical`.
-* Not implied by `--complete`. Release builds enable it via the `NERDFONTS` environment
-  variable (see Release below). This keeps the option additive and the default patch
-  result byte-identical to upstream.
-* Ignored with a warning for the Symbols Only font (`self.symbolsonly`), because there
-  are no Latin glyphs to derive from. Users on the fontconfig fallback route
-  (`10-nerd-font-symbols.conf`) therefore do not get provenance glyphs.
+It should use the same optional-value pattern as `--braille`:
 
-### Where it runs
+- If supplied without a value, it selects `identical`.
+- It is not enabled by `--complete`.
+- It warns and does nothing for the Symbols Only font, because variants require
+  base glyphs from the source font.
 
-`font_patcher.patch()` gains one call **after** the `patch_set` loop and the
-`check_glyph_counts` block, and **before** the `grave` fixup:
+Keeping the option separate from `--complete` makes it opt-in. Release builds
+could pass `--provenance=subtle` through `NERDFONTS` after the project decides
+whether such fonts need a distinct public family name.
+
+### Patch order
+
+Add provenance glyphs after the patch-set loop and the glyph-count check, but
+before the `grave` fix-up in `font_patcher.patch()`:
 
 ```python
         if self.args.glyphcount:
@@ -120,234 +141,240 @@ table, not derive it, so that a future profile can restrict or annotate entries.
         self.add_provenance_glyphs()
 ```
 
-It has to run late because:
+This order matters because `set_sourcefont_glyph_widths()` has already
+normalized glyph widths for `--mono`, and `copy_glyphs()` may rebuild the
+encoding or clear `altuni` on overwritten slots.
 
-* `set_sourcefont_glyph_widths()` (run for `--mono`) must already have normalized the
-  Latin widths that the variants inherit.
-* `copy_glyphs()` may have cleared `altuni` on overwritten slots and rebuilt the encoding;
-  provenance must add its own `altuni` after that, not before.
+Do not add provenance to `patch_set`. Existing `Filename` and `Font` patch-set
+entries create a separate FontForge font, then copy, scale, and align its
+glyphs. Provenance variants instead reference existing glyphs in
+`self.sourceFont` and must retain their original scale.
 
-It does **not** go into the `patch_set` table. Both table styles (`Filename` and the
-`Font` hook used by Braille) produce a *separate* FontForge font that `copy_glyphs()` pastes
-from, then scales and aligns as icons. Provenance glyphs are references to glyphs already
-in `self.sourceFont` and must not be scaled.
+### Glyph generation
 
-### Algorithm
+The following is the proposed implementation shape:
 
 ```python
-    def add_provenance_glyphs(self):
-        """ Add provenance variants (VS and PUA) derived from the source font's own glyphs """
-        if not self.args.provenance:
-            return
-        if self.symbolsonly:
-            logger.warning("Provenance glyphs need base glyphs, skipping for Symbols Only font")
-            return
-        mapping_file = os.path.join(self.args.glyphdir, 'provenance', 'mapping.json')
-        with open(mapping_file, 'r', encoding='utf-8') as f:
-            mapping = json.load(f)
-        vs = { k: int(v[2:], 16) for k, v in mapping['variation_selectors'].items() }
-        mark = self.create_provenance_mark() if self.args.provenance != 'identical' else None
+def add_provenance_glyphs(self):
+    """Add VS and PUA variants derived from the source font's own glyphs."""
+    if not self.args.provenance:
+        return
+    if self.symbolsonly:
+        logger.warning("Provenance glyphs need base glyphs; skipping Symbols Only font")
+        return
 
-        added = 0
-        for pua_s, entry in mapping['pua'].items():
-            base = int(entry['base'][2:], 16)
-            pua = int(pua_s[2:], 16)
-            if base not in self.sourceFont:
-                continue
-            if self.args.careful and pua in self.sourceFont:
-                continue
-            base_glyph = self.sourceFont[base]
-            # AI: encoded at the PUA code point, also reachable via base + VS_AI
-            ai = self.sourceFont.createChar(pua, base_glyph.glyphname + '.ai')
-            self.derive_provenance_glyph(ai, base_glyph, mark)
-            ai.altuni = ((base, vs['ai'], 0),)
-            # Explicit human and unknown: unencoded, reachable via VS only
-            for state in ('human', 'unknown'):
-                g = self.sourceFont.createChar(-1, base_glyph.glyphname + '.' + state)
-                self.derive_provenance_glyph(g, base_glyph, None)
-                g.altuni = ((base, vs[state], 0),)
-            added += 1
-        self.sourceFont.encoding = 'UnicodeFull' # Rebuild encoding table (needed after altuni changes)
-        logger.info("Added provenance variants for %d base glyphs (%s)", added, self.args.provenance)
+    mapping_file = os.path.join(self.args.glyphdir, "provenance", "mapping.json")
+    with open(mapping_file, encoding="utf-8") as file:
+        mapping = json.load(file)
 
-    def derive_provenance_glyph(self, glyph, base_glyph, mark):
-        """ Make glyph a metric-identical copy of base_glyph, optionally with the provenance mark """
-        glyph.addReference(base_glyph.glyphname)
-        if mark:
-            dx = (base_glyph.width - mark.width) / 2
-            glyph.addReference(mark.glyphname, (1, 0, 0, 1, dx, 0))
-        glyph.width = base_glyph.width
-        glyph.vwidth = base_glyph.vwidth
-        glyph.manualHints = True # No autohints for derived glyphs
+    vs = {name: int(value[2:], 16) for name, value in mapping["variation_selectors"].items()}
+    mark = self.create_provenance_mark() if self.args.provenance != "identical" else None
+
+    added = 0
+    for pua_string, entry in mapping["pua"].items():
+        base = int(entry["base"][2:], 16)
+        pua = int(pua_string[2:], 16)
+        if base not in self.sourceFont:
+            continue
+        if self.args.careful and pua in self.sourceFont:
+            continue
+
+        base_glyph = self.sourceFont[base]
+        ai = self.sourceFont.createChar(pua, base_glyph.glyphname + ".ai")
+        self.derive_provenance_glyph(ai, base_glyph, mark)
+        ai.altuni = ((base, vs["ai"], 0),)
+
+        for state in ("human", "unknown"):
+            glyph = self.sourceFont.createChar(-1, base_glyph.glyphname + "." + state)
+            self.derive_provenance_glyph(glyph, base_glyph, None)
+            glyph.altuni = ((base, vs[state], 0),)
+        added += 1
+
+    self.sourceFont.encoding = "UnicodeFull"
+    logger.info("Added provenance variants for %d base glyphs (%s)", added, self.args.provenance)
+
+
+def derive_provenance_glyph(self, glyph, base_glyph, mark):
+    """Create a metric-identical base-glyph reference, optionally with a mark."""
+    glyph.addReference(base_glyph.glyphname)
+    if mark:
+        dx = (base_glyph.width - mark.width) / 2
+        glyph.addReference(mark.glyphname, (1, 0, 0, 1, dx, 0))
+    glyph.width = base_glyph.width
+    glyph.vwidth = base_glyph.vwidth
+    glyph.manualHints = True
 ```
 
-Notes:
+The implementation must verify the FontForge behavior on each supported
+FontForge version:
 
-* `createChar(-1, name)` creates an unencoded glyph. Plane 16 code points are valid
-  because `patch()` already switched the font to `'UnicodeFull'`.
-* The format 14 `cmap` subtable comes for free: FontForge writes one for every
-  `altuni` entry whose selector field is not `-1`. `font-patcher` already reads
-  these `(unicode, selector, reserved)` tuples in `add_glyphrefs_to_essential()`.
-  **fontTools is not required in the patcher** and must not become a dependency,
-  because `FontPatcher.zip` is run on users' plain FontForge installs.
-* References are flattened by FontForge when generating CFF (`.otf`) output and kept
-  as composites for TrueType. Both keep the base outline and the advance width.
-* Existing base glyphs are never modified. Their kerning and features are untouched.
+- `createChar(-1, name)` creates the unencoded human and unknown variants.
+- `altuni` entries with a selector produce the required format 14 `cmap`
+  subtable.
+- CFF output flattens references and TrueType output preserves composites.
+
+Do not add `fontTools` as a runtime dependency of `font-patcher`. The patcher
+archive is intended to run with FontForge; `fontTools` is only proposed for the
+CI validator.
 
 ### Presentation styles
 
-| Style       | `.human` / `.unknown` | `.ai`                                 |
-|-------------|-----------------------|---------------------------------------|
-| `identical` | reference to base     | reference to base                     |
-| `subtle`    | reference to base     | base + small dot below the baseline   |
-| `explicit`  | reference to base     | base + bar spanning the advance width |
+| Style       | `.human` and `.unknown` | `.ai`                                            |
+| ----------- | ----------------------- | ------------------------------------------------ |
+| `identical` | Reference to base glyph | Reference to base glyph                          |
+| `subtle`    | Reference to base glyph | Base glyph with a small dot below the baseline   |
+| `explicit`  | Reference to base glyph | Base glyph with a bar spanning its advance width |
 
-`create_provenance_mark()` draws the mark once, unencoded, named `provenance.mark`, with
-a `glyphPen` in the same way `bin/scripts/braille/Braille.py` draws its dots. Invariants,
-so line height and cell width do not change:
+`create_provenance_mark()` should create one unencoded glyph named
+`provenance.mark`. It can use `glyphPen`, as the Braille generator does. The
+implementation must maintain these invariants:
 
-* Vertical extent stays within `[self.font_dim['ymin'], self.font_dim['ymax']]`.
-  Place the mark in the descender zone, e.g. centered at `0.6 * ymin`.
-* Horizontal extent stays within `[0, base.width]` after the centering transform.
-  For `--mono` this is `self.font_dim['width']`.
-* Mark size scales with `self.sourceFont.em`, not with fixed units.
+- The mark remains within `self.font_dim['ymin']` and `self.font_dim['ymax']`.
+- After centering, the mark remains within the base glyph's advance width.
+- For `--mono`, use `self.font_dim['width']` as that width.
+- Scale the mark relative to `self.sourceFont.em`, not fixed font units.
 
 ### Font metadata
 
-`setup_version()` records the profile version in the `Version` name (ID 5) because it is
-the only field that survives into every consumer. `font.comment` and `font.fontlog` land
-in FontForge's private `PfEd` table and are invisible to other tools.
-
-The tag must be inserted **before** the `Nerd Fonts` segment:
+Record the profile version in the font's Version name (name ID 5). Insert the
+profile tag before the Nerd Fonts version segment:
 
 ```python
-        prov = ";NFProv " + PROVENANCE_PROFILE if self.args.provenance else ""
-        self.sourceFont.version += prov + ";" + projectName + " " + version
+prov = ";NFProv " + PROVENANCE_PROFILE if self.args.provenance else ""
+self.sourceFont.version += prov + ";" + projectName + " " + version
 ```
 
-Reason: `FontnameParser.rename_font()` in `bin/scripts/name_parser/` builds `UniqueID`
-from the *last whitespace-separated token* of the Version string. Appending `;NFProv 1` at
-the end would turn every UniqueID into `Hack Nerd Font Regular 1`.
+The insertion order is important because `FontnameParser.rename_font()` derives
+`UniqueID` from the last whitespace-separated Version token. The intended result
+is, for example:
 
-Result: `Version 3.003;NFProv 1;Nerd Fonts 3.5.1`.
+```text
+Version 3.003;NFProv 1;Nerd Fonts 3.5.1
+```
 
-### `--experimental check-glyph-count`
+### Glyph-count check
 
-Register the added count so the check does not see an unexplained surplus:
+Register generated glyphs so `--experimental check-glyph-count` does not report
+them as unexplained:
 
 ```python
-        glyphnum.update({'Provenance': (None, added)})
+glyphnum.update({"Provenance": (None, added)})
 ```
 
-`check_glyph_counts()` skips entries whose `ish` file is `None`, which is intended: there
-is no cheat-sheet file for these glyphs.
+`check_glyph_counts()` already skips entries with an `ish` value of `None`, so
+no icon cheat-sheet file is required.
 
-## What is *not* updated
+## Files that should remain unchanged
 
-* `glyphnames.json`, `bin/scripts/lib/i_*.sh`, `css/`: These are the icon cheat sheet.
-  Provenance variants are letters, not icons. `mapping.json` is their registry.
-* `src/glyphs/README.md` icon set table: Provenance has no upstream font and no license
-  row. Add a one-line pointer to this directory below the table instead.
-* `Dockerfile`: No new runtime dependency.
+- `glyphnames.json`, `bin/scripts/lib/i_*.sh`, and `css/` describe icon glyphs.
+  Provenance variants are source-font characters; `mapping.json` would be their
+  registry.
+- The icon-set table in `src/glyphs/README.md` has no suitable upstream or
+  license row for this feature. Add only a one-line pointer to this directory.
+- `Dockerfile` needs no new runtime dependency.
+- `fonts.json`, the release matrix, family names, and archive layout should not
+  change as part of the implementation.
 
-## Tooling
+## Proposed helper tools
 
 ### `bin/scripts/nfprov.py`
 
-Reference encoder/decoder from section 11 of the design document. Pure Python 3, standard
-library only, reads `mapping.json` relative to its own location (same lookup pattern as
-`font-patcher` uses for `glyphnames.json`, see `fetch_glyphnames()`).
+Implement a standard-library-only reference encoder and decoder. It should load
+`mapping.json` relative to its own location and support:
 
-```
+```text
 nfprov.py inspect FILE
 nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
 nfprov.py convert --from=vs|pua --to=vs|pua FILE
 nfprov.py strip FILE
 ```
 
-`strip` prints a warning that the operation is lossy. Unknown code points pass through
-unchanged. Carry the `# Nerd Fonts Version:` and `# Script Version:` header lines so
-`version-bump.sh` picks the file up, and add a row to `bin/scripts/README.md` marked `[4]`.
+`strip` must warn that it is lossy. Unrecognized code points should pass through
+unchanged. Add the Nerd Fonts and script-version header lines required by
+`version-bump.sh`, and list the tool in `bin/scripts/README.md` as `[4]`.
 
 ### `bin/scripts/test-provenance.py`
 
-fontTools-based validator for a patched font, used by CI only:
+Implement a `fontTools`-based validator for CI. It should verify that:
 
-* A format 14 `cmap` subtable exists.
-* For every `pua` entry whose base is in the font: the PUA code point maps to a glyph,
-  `base + VS_AI` maps to the same glyph, `base + VS_HUMAN` and `base + VS_UNKNOWN` map
-  to glyphs.
-* Every variant's advance width equals its base's.
-* `head.yMin`/`yMax` and `hhea` ascender/descender equal the same font patched without
-  `--provenance`.
+- A format 14 `cmap` subtable exists.
+- For each mapped base glyph present in the font, the PUA code point and
+  `base + VS_AI` resolve to the same glyph.
+- `base + VS_HUMAN` and `base + VS_UNKNOWN` resolve to glyphs.
+- Each variant has the same advance width as its base glyph.
+- `head.yMin`, `head.yMax`, and `hhea` ascender and descender match a build of
+  the same font without `--provenance`.
 
-Add it to `bin/scripts/README.md` marked `[1]`.
+List the validator in `bin/scripts/README.md` as `[1]`.
 
-## CI and release
+## Proposed CI and release changes
 
-### `.github/workflows/font-patcher.yml`
+### Font-patcher workflow
 
-Already triggers on `src/glyphs/**` and already runs `pip install fonttools`. Add after
-the existing Hack steps:
-
-```yaml
-      - name: Patcher provenance
-        run: |
-          fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
-          --complete --provenance=subtle --quiet --no-progressbars --outputdir $GITHUB_WORKSPACE/temp/prov/
-
-      - name: Check provenance tables
-        run: |
-          python3 bin/scripts/test-provenance.py "$GITHUB_WORKSPACE/temp/prov/HackNerdFont-Regular.ttf"
-```
-
-Also run one `--mono` build with `--provenance`, because that is the path where width
-normalization happens before the variants are derived.
-
-### `.github/workflows/release.yml`
-
-`gotta-patch-em-all-font-patcher!.sh` forwards `$NERDFONTS` to every `font-patcher` call
-in all three variants. To ship provenance in `patched-fonts/`:
+`.github/workflows/font-patcher.yml` already runs when `src/glyphs/**` changes
+and installs `fonttools`. After the existing Hack patch step, add a provenance
+build and validator step:
 
 ```yaml
-      - name: Patch all the variations of the font family
-        env:
-          NERDFONTS: "--provenance=subtle"
-        run: |
-          cd -- "$GITHUB_WORKSPACE/bin/scripts"
-          fontforge --script `pwd`/../../font-patcher --version
-          ./gotta-patch-em-all-font-patcher\!.sh -jp "/${{ matrix.font }}"
+- name: Patch provenance font
+  run: |
+    fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
+      --complete --provenance=subtle --quiet --no-progressbars \
+      --outputdir "$GITHUB_WORKSPACE/temp/prov/"
+
+- name: Validate provenance tables
+  run: |
+    python3 bin/scripts/test-provenance.py \
+      "$GITHUB_WORKSPACE/temp/prov/HackNerdFont-Regular.ttf"
 ```
 
-No change to `fonts.json`, the font matrix, family names, or archive layout. If these
-fonts are distributed publicly next to upstream Nerd Fonts, decide on a distinct family
-name first (`projectName` and `projectNameAbbreviation` at the top of `font-patcher`).
+Also add a `--mono` provenance build, since width normalization precedes variant
+generation.
 
-## Manual testing
+### Release workflow
+
+`gotta-patch-em-all-font-patcher!.sh` already forwards `NERDFONTS` to its
+`font-patcher` calls. To distribute provenance-aware fonts, the release workflow
+could set:
+
+```yaml
+env:
+  NERDFONTS: "--provenance=subtle"
+```
+
+Do this only after deciding whether public distribution needs a distinct font
+family name. That decision affects `projectName` and
+`projectNameAbbreviation` in `font-patcher`.
+
+## Implementation validation
+
+After implementing the feature, use this proposed validation sequence for a Hack
+build and, separately, a Fira Code build. It requires FontForge, HarfBuzz's
+`hb-shape`, and the proposed validator:
 
 ```bash
-# Patch
+# Hack: patch and validate the generated font.
 fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
   --complete --provenance=subtle --debug 2 --outputdir /tmp/prov
+python3 bin/scripts/test-provenance.py /tmp/prov/HackNerdFont-Regular.ttf
 
-# Shaping: expect glyph 'A.ai' for both inputs
+# The two inputs should shape to A.ai.
 hb-shape /tmp/prov/HackNerdFont-Regular.ttf -u "0041,E0101"
 hb-shape /tmp/prov/HackNerdFont-Regular.ttf -u "100041"
 
-# Ligature fonts: check that VS between letters does not break liga/calt
-hb-shape /tmp/prov/FiraCodeNerdFont-Regular.ttf --features=calt -u "003D,E0101,003E,E0101"
-
-# Tables
-python3 bin/scripts/test-provenance.py /tmp/prov/HackNerdFont-Regular.ttf
+# Fira Code: create the file before testing its contextual alternatives.
+fontforge --script ./font-patcher src/unpatched-fonts/FiraCode/FiraCode-Regular.ttf \
+  --complete --provenance=subtle --debug 2 --outputdir /tmp/prov
+hb-shape /tmp/prov/FiraCodeNerdFont-Regular.ttf --features=calt \
+  -u "003D,E0101,003E,E0101"
 ```
 
-Repeat for `--mono` and `--variable-width-glyphs`, and for at least one `.otf` source
-(CFF flattens references) and one font with `calt` ligatures. Patched test fonts are
-never committed.
+Repeat the validation for `--mono`, `--variable-width-glyphs`, an OTF source,
+and a font with `calt` ligatures. Do not commit generated test fonts.
 
-Known limitation to verify per font: variation selectors are General Category `Mn`.
-Contextual and ligature lookups that do not set `IgnoreMarks` will stop matching across
-a selector, and PUA variants have no kerning or ligatures at all. This is a property of
-the protocol, not of the patcher, and is documented rather than worked around.
+Variation selectors have Unicode general category `Mn`. Contextual and ligature
+lookups that do not use `IgnoreMarks` may not match across a selector. PUA
+variants have no inherited kerning or ligatures. Confirm and document the
+observed behavior per font during implementation.
 
 [wiki-conflicts]: https://github.com/ryanoasis/nerd-fonts/wiki/Codepoint-Conflicts
