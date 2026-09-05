@@ -609,7 +609,9 @@ class font_patcher:
         mark = self.sourceFont.createChar(-1, 'provenance.mark')
         pen = mark.glyphPen()
         if self.args.provenance == 'subtle':
-            radius = min(em / 64, usable / 2)
+            # About half the width of a typical period (Hack's is em/6.3), so the
+            # dot survives at terminal sizes without reading as punctuation.
+            radius = min(em / 24, usable / 2)
             cy = self.font_dim['ymin'] + margin + radius
             # An octagon, drawn with straight lines only. glyphPen.curveTo() takes
             # cubic or quadratic control points depending on the outline type of

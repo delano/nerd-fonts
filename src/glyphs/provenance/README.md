@@ -159,7 +159,8 @@ not rebuilt and the Version name is not tagged.
 `provenance.mark`, lazily and at most once per font, with `glyphPen` and
 straight line segments only (`curveTo()` takes cubic or quadratic control
 points depending on the source outline type, so Bezier segments would not be
-portable). The `subtle` dot is an octagon of radius `em/64`, which
+portable). The `subtle` dot is an octagon of radius `em/24` (a diameter of
+about half a typical period, chosen so it survives at terminal sizes), which
 `derive_provenance_glyph()` translates to `width/2` so it sits centred under
 the cell below the baseline. The `explicit` bar is `em/48` thick, drawn
 canonically from `0` to `em` and scaled per glyph onto the base advance width.
@@ -307,7 +308,8 @@ bin/scripts/generate-provenance-example.sh identical subtle explicit
 ```
 
 It writes patched fonts and one PNG per style to `temp/provenance-example/`,
-which is ignored by git. The manual steps below cover the same ground in more
+which is ignored by git. When more than one style is given and ImageMagick is
+installed, the PNGs are also stacked into `all-styles.png`. The manual steps below cover the same ground in more
 detail. Use a scratch output directory and do not commit generated fonts.
 
 ```bash
@@ -362,6 +364,27 @@ Measured with FontForge 20251009 and HarfBuzz.
   4.5 % more glyphs.
 - **Reserved selectors.** `U+E0103` and `U+E0104` have no variants in the font
   and fall through to the base glyph.
+
+### Verified renderers
+
+Checked with the `subtle` Hack build from `generate-provenance-example.sh`,
+loaded through `@font-face` from a local HTTP server, on macOS.
+
+| Renderer                          | Result                                                  |
+| --------------------------------- | ------------------------------------------------------- |
+| HarfBuzz (`hb-view`, `hb-shape`)  | Correct: variants selected, marks rendered              |
+| Chrome, Vivaldi                   | Correct                                                 |
+| Firefox                           | Correct                                                 |
+| Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
+| Terminal emulators, editors       | Not yet tested                                          |
+
+Safari and Orion both shape through WebKit and CoreText, and neither honoured
+the format 14 subtable for these private selectors. The text still renders
+cleanly (no boxes, no extra spacing), so the failure is silent. Other CoreText
+hosts such as Terminal.app and iTerm2 are expected to behave the same way; that
+is the next thing to verify. Whether CoreText can be made to honour the
+selectors, for example by registering the sequences differently in `cmap`, is
+an open question.
 
 ## Files intentionally unchanged
 

@@ -7,7 +7,8 @@
 # For each requested presentation style this script
 #   1. patches the source font with `font-patcher --provenance=<style>`,
 #   2. marks a short sample text with `nfprov.py` (one line per state),
-#   3. renders the sample to a PNG with HarfBuzz `hb-view`,
+#   3. renders the sample to a PNG with HarfBuzz `hb-view` (and stacks all styles into
+#      all-styles.png when ImageMagick is installed),
 #   4. shows with `hb-shape` that <A, VS18> and the PUA code point select the same glyph,
 #   5. validates the font tables with `test-provenance.py` when fontTools is importable.
 #
@@ -34,7 +35,7 @@ patcher_args=""
 font_size=40
 
 usage() {
-  sed -n '4,24p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '4,25p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -144,6 +145,20 @@ for style in "${styles[@]}"; do
     echo "fontTools not importable; skipping test-provenance.py (pip install fonttools)"
   fi
 done
+
+if [ ${#styles[@]} -gt 1 ]; then
+  # Stack the per-style renders into one image when ImageMagick is available.
+  combined="${outputdir}/all-styles.png"
+  pngs=()
+  for style in "${styles[@]}"; do pngs+=("${outputdir}/${style}.png"); done
+  if command -v magick >/dev/null 2>&1; then
+    magick "${pngs[@]}" -append "$combined" && echo "Combined:     $combined"
+  elif command -v convert >/dev/null 2>&1; then
+    convert "${pngs[@]}" -append "$combined" && echo "Combined:     $combined"
+  else
+    echo "ImageMagick not found; skipping the combined image"
+  fi
+fi
 
 echo
 echo "Done. Open the PNG files in $outputdir to compare styles."
