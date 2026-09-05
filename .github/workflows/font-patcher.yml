@@ -3,7 +3,7 @@ name: "Font-Patcher"
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
     paths:
       - 'font-patcher'
       - 'src/glyphs/**'
@@ -121,6 +121,35 @@ jobs:
       - name: Check if patched font generated
         run: |
           [ -e "$GITHUB_WORKSPACE/temp/CaskaydiaCoveNerdFont-Bold.ttf" ] && echo "File exists" || exit 1
+
+      - name: Provenance tool selftests
+        run: |
+          python3 bin/scripts/nfprov.py --selftest
+          python3 bin/scripts/test-provenance.py --selftest
+
+      - name: Patcher provenance
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/temp/prov/
+          fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
+          --complete --provenance=subtle --quiet --no-progressbars --outputdir $GITHUB_WORKSPACE/temp/prov/ \
+          --experimental check-glyph-count
+
+      - name: Validate provenance tables
+        run: |
+          python3 bin/scripts/test-provenance.py \
+          --reference "$GITHUB_WORKSPACE/temp/HackNerdFont-Regular.ttf" \
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFont-Regular.ttf"
+
+      - name: Patcher provenance monospaced
+        run: |
+          fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
+          --complete --mono --provenance=explicit --quiet --no-progressbars --outputdir $GITHUB_WORKSPACE/temp/prov/
+
+      - name: Validate provenance tables monospaced
+        run: |
+          python3 bin/scripts/test-provenance.py \
+          --reference "$GITHUB_WORKSPACE/temp/HackNerdFontMono-Regular.ttf" \
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontMono-Regular.ttf"
 
       - name: Check if font with references is patched
         # (patch result not checked)

@@ -6,7 +6,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 # Change the script version when you edit this script:
-script_version = "4.27.3"
+script_version = "4.28.0"
 
 version = "3.5.1"
 projectName = "Nerd Fonts"
@@ -18,6 +18,7 @@ from enum import Enum
 import errno
 import json
 import logging
+import math
 import os
 import re
 import subprocess
@@ -373,6 +374,7 @@ class font_patcher:
         self.xavgwidth = [] # list of ints
         self.glyphnames = fetch_glyphnames()
         self.copy_glyphs_last = {'header': '', 'maximum': 0}
+        self.provenance_mark = False # Later None or the 'provenance.mark' glyph
 
     def patch(self, font):
         self.sourceFont = font
@@ -456,6 +458,15 @@ class font_patcher:
         if self.args.progressbars:
             sys.stdout.write("\n")
 
+        # Provenance variants reference glyphs that are already in the font, so
+        # they must be built after copy_glyphs() (which may rebuild the encoding
+        # or clear altuni) and after set_sourcefont_glyph_widths() normalized the
+        # widths for --mono.
+        added = self.add_provenance_glyphs()
+        if added:
+            glyphnum.update({"Provenance": (None, added)})
+            self.tag_provenance_version()
+
         if self.args.glyphcount:
             check_glyph_counts(glyphnum)
 
@@ -467,6 +478,165 @@ class font_patcher:
         if "grave" in self.sourceFont:
             self.sourceFont["grave"].glyphclass="baseglyph"
 
+
+
+    def add_provenance_glyphs(self):
+        """ Add provenance variation-selector and PUA glyphs derived from the source font's own glyphs """
+        # Returns the number of base glyphs that got variants (0 if disabled).
+        if not self.args.provenance:
+            return 0
+        if self.symbolsonly:
+            logger.warning("Provenance glyphs need base glyphs; skipping Symbols Only font")
+            return 0
+
+        mapping_file = os.path.join(self.args.glyphdir, "provenance", "mapping.json")
+        try:
+            with open(mapping_file, "rb") as f:
+                raw_mapping = f.read()
+        except IOError:
+            logger.critical("Can not find provenance mapping %s "
+                "(probably you need to download the src/glyphs/ directory?)", mapping_file)
+            sys.exit(1)
+        try:
+            # Validate the whole registry up front, so a malformed file fails with
+            # one message instead of a traceback halfway through the glyph loop.
+            # The profile version is what tag_provenance_version() announces.
+            mapping = json.loads(raw_mapping.decode("utf-8"))
+            profile = mapping["version"]
+            if isinstance(profile, bool) or not isinstance(profile, int) or profile < 1:
+                raise ValueError("version must be a positive integer, got %r" % (profile,))
+            self.provenance_profile = str(profile)
+            selectors = { name: int(value[2:], 16) for name, value in mapping["variation_selectors"].items() }
+            pua_table = { int(pua_string[2:], 16): int(entry["base"][2:], 16) for pua_string, entry in mapping["pua"].items() }
+            for state in ("ai", "human", "unknown"):
+                selectors[state]
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            logger.critical("Invalid provenance mapping %s: %r", mapping_file, e)
+            sys.exit(1)
+
+        our_selectors = set(selectors.values())
+        added = 0
+        for pua, base in pua_table.items():
+            if base not in self.sourceFont:
+                continue
+            if pua in self.sourceFont:
+                # createChar() would return the existing glyph, so we would stack
+                # a reference onto its outline and clobber its altuni and width.
+                logger.debug("Skipping provenance for U+%04X, U+%06X is occupied", base, pua)
+                continue
+
+            base_glyph = self.sourceFont[base]
+            basename = base_glyph.glyphname
+            # Do not touch a base glyph that already claims one of our selectors,
+            # and do not stomp on glyph names that the source font already uses.
+            existing_altuni = base_glyph.altuni or ()
+            if any(sel in our_selectors for _, sel, _ in existing_altuni):
+                logger.debug("Skipping provenance for %s, it already has a provenance selector", basename)
+                continue
+            variant_names = [ basename + "." + state for state in ("ai", "human", "unknown") ]
+            if any(name in self.sourceFont for name in variant_names):
+                logger.debug("Skipping provenance for %s, variant glyph name already exists", basename)
+                continue
+
+            # The .ai variant is reachable both by its PUA code point and by
+            # <base, VS_AI>; the other two are unencoded and selector-only.
+            ai = self.sourceFont.createChar(pua, basename + ".ai")
+            # Built lazily, so a font where every base is skipped gains no stray mark
+            self.derive_provenance_glyph(ai, base_glyph, self.create_provenance_mark())
+            ai.altuni = ((base, selectors["ai"], 0),)
+
+            for state in ("human", "unknown"):
+                # createChar(-1, name) creates an unencoded glyph
+                glyph = self.sourceFont.createChar(-1, basename + "." + state)
+                self.derive_provenance_glyph(glyph, base_glyph, None)
+                glyph.altuni = ((base, selectors[state], 0),)
+            added += 1
+
+        if not added:
+            # Every base was skipped (for example re-patching an already
+            # provenance-patched font); leave the font exactly as it was.
+            logger.info("No provenance variants added (%s)", self.args.provenance)
+            return 0
+
+        # Rebuild the encoding table, which is needed after altuni changes. The
+        # selector altunis are what make FontForge emit a format 14 cmap subtable
+        # on export. This behavior, and unencoded createChar(-1, name), are the
+        # tested contract of the FontForge versions in the CI matrix of
+        # .github/workflows/font-patcher.yml (20220308, 20230101, 20251009).
+        self.sourceFont.encoding = 'UnicodeFull'
+        logger.info("Added provenance variants for %d base glyphs (%s)", added, self.args.provenance)
+        return added
+
+
+    def derive_provenance_glyph(self, glyph, base_glyph, mark):
+        """ Fill a provenance variant with a metric identical reference to its base glyph, plus an optional mark """
+        glyph.addReference(base_glyph.glyphname)
+        if mark:
+            # set_sourcefont_glyph_widths() already normalized this to
+            # font_dim['width'] for --mono, so the base width is always correct
+            width = base_glyph.width
+            if self.args.provenance == 'explicit':
+                # The canonical bar spans 0 .. em, scale it onto the advance width
+                sx = width / self.sourceFont.em
+                glyph.addReference(mark.glyphname, (sx, 0, 0, 1, 0, 0))
+            else:
+                # The canonical dot is centered on x = 0, move it under the cell
+                glyph.addReference(mark.glyphname, (1, 0, 0, 1, width / 2, 0))
+        glyph.width = base_glyph.width
+        glyph.vwidth = base_glyph.vwidth
+        glyph.glyphclass = base_glyph.glyphclass if base_glyph.glyphclass != 'automatic' else 'baseglyph'
+        glyph.manualHints = True
+
+
+    def create_provenance_mark(self):
+        """ Create the single unencoded 'provenance.mark' glyph used by the marked presentation styles """
+        if self.provenance_mark is not False:
+            return self.provenance_mark
+        self.provenance_mark = None
+        if self.args.provenance == 'identical':
+            return None
+
+        em = self.sourceFont.em
+        # Everything lives between the baseline and the bottom of the cell, so
+        # that the font's own descender never has to be lowered.
+        depth = -self.font_dim['ymin']
+        if depth <= em / 100:
+            logger.warning("No room below the baseline for provenance marks, using unmarked variants")
+            return None
+        margin = depth * 0.12
+        usable = depth - 2 * margin
+
+        mark = self.sourceFont.createChar(-1, 'provenance.mark')
+        pen = mark.glyphPen()
+        if self.args.provenance == 'subtle':
+            # About half the width of a typical period (Hack's is em/6.3), so the
+            # dot survives at terminal sizes without reading as punctuation.
+            radius = min(em / 24, usable / 2)
+            cy = self.font_dim['ymin'] + margin + radius
+            # An octagon, drawn with straight lines only. glyphPen.curveTo() takes
+            # cubic or quadratic control points depending on the outline type of
+            # the source font, so Bezier segments would not be portable here.
+            pen.moveTo((0, cy + radius))
+            for corner in range(1, 8):
+                angle = corner * math.pi / 4
+                pen.lineTo((radius * math.sin(angle), cy + radius * math.cos(angle)))
+            pen.closePath()
+        else:
+            thickness = min(em / 48, usable)
+            y0 = self.font_dim['ymin'] + margin
+            y1 = y0 + thickness
+            # Canonical bar spanning 0 .. em, scaled per glyph in derive_provenance_glyph()
+            pen.moveTo((0, y1))
+            pen.lineTo((em, y1))
+            pen.lineTo((em, y0))
+            pen.lineTo((0, y0))
+            pen.closePath()
+        pen = None
+        mark.width = em
+        mark.glyphclass = 'baseglyph'
+        mark.manualHints = True
+        self.provenance_mark = mark
+        return mark
 
     def generate(self, sourceFonts):
         sourceFont = sourceFonts[0]
@@ -827,6 +997,27 @@ class font_patcher:
         self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), "Version " + self.sourceFont.version)
         # The Version SFNT name is later reused by the NameParser for UniqueID
         # print("Version now is {}".format(sourceFont.version))
+
+
+    def tag_provenance_version(self):
+        """ Announce the implemented provenance profile in the Version name (name ID 5) """
+        # This runs only after variants have actually been added, so the tag is
+        # never advertised by a build that implements no profile (for example the
+        # Symbols Only font, which has no base glyphs to derive from).
+        # The tag goes *before* the Nerd Fonts segment, because
+        # FontnameParser.rename_font() derives the UniqueID from the *last*
+        # whitespace separated token of the Version name.
+        nerdfonts_segment = ";" + projectName + " " + version
+        prov = ";" + projectNameAbbreviation + "Prov " + self.provenance_profile
+        head, sep, tail = self.sourceFont.version.rpartition(nerdfonts_segment)
+        if not sep:
+            logger.warning("Unexpected font version '%s', appending the provenance tag", self.sourceFont.version)
+            self.sourceFont.version += prov
+        else:
+            self.sourceFont.version = head + prov + sep + tail
+        self.sourceFont.sfntRevision = None # Auto-set (refreshed) by fontforge
+        self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), "Version " + self.sourceFont.version)
+        # The Version SFNT name is later reused by the NameParser for UniqueID
 
 
     def remove_ligatures(self):
@@ -2245,6 +2436,7 @@ def setup_arguments():
     #  6  HugoSansMono NF XCn Lt It                                [X] [X] [X]
 
     sym_font_group = parser.add_argument_group('Symbol Fonts')
+    sym_font_group.add_argument('--provenance',                                 dest='provenance',           default=False, type=str, nargs='?', help='Add provenance variant Glyphs, can pass a string to control style (optional: *identical, subtle, explicit)', const='identical', choices=['identical', 'subtle', 'explicit'])
     sym_font_group.add_argument('--braille',                                    dest='braille',              default=False, type=str, nargs='?', help='Add Braille Glyphs, can pass a string to control style (optional: *rectangle, circle, gapless)', const='rectangle', choices=['rectangle', 'circle', 'gapless'])
     sym_font_group.add_argument('--complete', '-c',                             dest='complete',             default=False, action='store_true', help='Add all available Glyphs')
     sym_font_group.add_argument('--codicons',                                   dest='codicons',             default=False, action='store_true', help='Add Codicons Glyphs (https://github.com/microsoft/vscode-codicons)')
