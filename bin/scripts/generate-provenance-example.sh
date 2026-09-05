@@ -12,11 +12,12 @@
 #   5. validates the font tables with `test-provenance.py` when fontTools is importable.
 #
 # Usage:
-#   generate-provenance-example.sh [-f SOURCE_FONT] [-o OUTPUT_DIR] [STYLE ...]
+#   generate-provenance-example.sh [-f SOURCE_FONT] [-o OUTPUT_DIR] [-p PATCHER_ARGS] [STYLE ...]
 #
-#   STYLE        identical, subtle, or explicit (default: subtle). Several may be given.
-#   SOURCE_FONT  defaults to src/unpatched-fonts/Hack/Hack-Regular.ttf
-#   OUTPUT_DIR   defaults to temp/provenance-example (ignored by git)
+#   STYLE         identical, subtle, or explicit (default: subtle). Several may be given.
+#   SOURCE_FONT   defaults to src/unpatched-fonts/Hack/Hack-Regular.ttf
+#   OUTPUT_DIR    defaults to temp/provenance-example (ignored by git)
+#   PATCHER_ARGS  extra font-patcher options applied to every build, e.g. -p "--mono" or -p "--complete"
 #
 # Needs fontforge, python3, and hb-view/hb-shape (HarfBuzz utilities; `brew install harfbuzz`
 # or `apt install libharfbuzz-bin`). Nothing is installed system wide. Generated fonts and
@@ -29,17 +30,19 @@ repo="${sd}/../.."
 
 source_font="${repo}/src/unpatched-fonts/Hack/Hack-Regular.ttf"
 outputdir="${repo}/temp/provenance-example"
+patcher_args=""
 font_size=40
 
 usage() {
-  sed -n '4,23p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '4,24p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
-while getopts "f:o:h" opt; do
+while getopts "f:o:p:h" opt; do
   case "$opt" in
     f) source_font="$OPTARG" ;;
     o) outputdir="$OPTARG" ;;
+    p) patcher_args="$OPTARG" ;;
     h) usage 0 ;;
     *) usage 1 ;;
   esac
@@ -91,7 +94,8 @@ mkdir -p "$plaindir"
 echo "Patching reference font (no provenance) into $plaindir"
 patch() {
   # Keep only the patcher's own log lines; FontForge prints a long banner even with --quiet.
-  fontforge --script "${repo}/font-patcher" "$@" --quiet --no-progressbars 2>&1 \
+  # shellcheck disable=SC2086  # patcher_args is deliberately word-split
+  fontforge --script "${repo}/font-patcher" "$@" $patcher_args --quiet --no-progressbars 2>&1 \
     | grep -E 'INFO:|WARNING:|CRITICAL:|ERROR|Traceback|===>' || true
 }
 
