@@ -47,8 +47,8 @@ Related scripts:
 
 `bin/scripts/archive-font-patcher.sh` already sweeps all of `src/glyphs/` into
 the archive, so `mapping.json` ships inside `FontPatcher.zip` with no change to
-that script. If the file is missing at patch time, `font-patcher` logs a
-critical error naming the expected path and exits.
+that script. If the file is missing or malformed at patch time, `font-patcher`
+logs a critical error naming the path and exits before touching any glyph.
 
 ## Code-point allocation
 
@@ -141,7 +141,8 @@ Per base character, `add_provenance_glyphs()` skips the character when:
 
 These skips are unconditional and are logged at debug level; `--careful` does
 not affect them. Because of the second and third rules, re-patching an already
-provenance-patched font adds nothing.
+provenance-patched font adds nothing, and when nothing is added the encoding is
+not rebuilt and the Version name is not tagged.
 
 ### Presentation styles
 
@@ -199,7 +200,8 @@ needed.
 ### Version metadata
 
 `tag_provenance_version()` runs only when at least one variant was added. It
-inserts `;NFProv 1` (from `projectNameAbbreviation` and `PROVENANCE_PROFILE`)
+inserts `;NFProv 1` (from `projectNameAbbreviation` and the `version` field of
+`mapping.json`, read at patch time rather than hard-coded)
 immediately before the `Nerd Fonts x.y.z` segment of the Version name (name ID
 5). The Version name is used because it is the only field that survives into
 every consumer: `font.comment` and `font.fontlog` land in FontForge's private

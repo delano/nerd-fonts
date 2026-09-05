@@ -12,7 +12,6 @@ version = "3.5.1"
 projectName = "Nerd Fonts"
 projectNameAbbreviation = "NF"
 projectNameSingular = projectName[:-1]
-PROVENANCE_PROFILE = "1"  # src/glyphs/provenance/mapping.json "version"
 
 import argparse
 from enum import Enum
@@ -493,18 +492,28 @@ class font_patcher:
         mapping_file = os.path.join(self.args.glyphdir, "provenance", "mapping.json")
         try:
             with open(mapping_file, "rb") as f:
-                mapping = json.loads(f.read().decode("utf-8"))
+                raw_mapping = f.read()
         except IOError:
             logger.critical("Can not find provenance mapping %s "
                 "(probably you need to download the src/glyphs/ directory?)", mapping_file)
             sys.exit(1)
+        try:
+            # Validate the whole registry up front, so a malformed file fails with
+            # one message instead of a traceback halfway through the glyph loop.
+            # The profile version is what tag_provenance_version() announces.
+            mapping = json.loads(raw_mapping.decode("utf-8"))
+            self.provenance_profile = str(int(mapping["version"]))
+            selectors = { name: int(value[2:], 16) for name, value in mapping["variation_selectors"].items() }
+            pua_table = { int(pua_string[2:], 16): int(entry["base"][2:], 16) for pua_string, entry in mapping["pua"].items() }
+            for state in ("ai", "human", "unknown"):
+                selectors[state]
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            logger.critical("Invalid provenance mapping %s: %r", mapping_file, e)
+            sys.exit(1)
 
-        selectors = { name: int(value[2:], 16) for name, value in mapping["variation_selectors"].items() }
         our_selectors = set(selectors.values())
         added = 0
-        for pua_string, entry in mapping["pua"].items():
-            base = int(entry["base"][2:], 16)
-            pua = int(pua_string[2:], 16)
+        for pua, base in pua_table.items():
             if base not in self.sourceFont:
                 continue
             if pua in self.sourceFont:
@@ -539,6 +548,12 @@ class font_patcher:
                 self.derive_provenance_glyph(glyph, base_glyph, None)
                 glyph.altuni = ((base, selectors[state], 0),)
             added += 1
+
+        if not added:
+            # Every base was skipped (for example re-patching an already
+            # provenance-patched font); leave the font exactly as it was.
+            logger.info("No provenance variants added (%s)", self.args.provenance)
+            return 0
 
         # Rebuild the encoding table, which is needed after altuni changes. The
         # selector altunis are what make FontForge emit a format 14 cmap subtable
@@ -988,7 +1003,7 @@ class font_patcher:
         # FontnameParser.rename_font() derives the UniqueID from the *last*
         # whitespace separated token of the Version name.
         nerdfonts_segment = ";" + projectName + " " + version
-        prov = ";" + projectNameAbbreviation + "Prov " + PROVENANCE_PROFILE
+        prov = ";" + projectNameAbbreviation + "Prov " + self.provenance_profile
         head, sep, tail = self.sourceFont.version.rpartition(nerdfonts_segment)
         if not sep:
             logger.warning("Unexpected font version '%s', appending the provenance tag", self.sourceFont.version)
