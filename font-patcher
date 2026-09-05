@@ -502,7 +502,10 @@ class font_patcher:
             # one message instead of a traceback halfway through the glyph loop.
             # The profile version is what tag_provenance_version() announces.
             mapping = json.loads(raw_mapping.decode("utf-8"))
-            self.provenance_profile = str(int(mapping["version"]))
+            profile = mapping["version"]
+            if isinstance(profile, bool) or not isinstance(profile, int) or profile < 1:
+                raise ValueError("version must be a positive integer, got %r" % (profile,))
+            self.provenance_profile = str(profile)
             selectors = { name: int(value[2:], 16) for name, value in mapping["variation_selectors"].items() }
             pua_table = { int(pua_string[2:], 16): int(entry["base"][2:], 16) for pua_string, entry in mapping["pua"].items() }
             for state in ("ai", "human", "unknown"):
