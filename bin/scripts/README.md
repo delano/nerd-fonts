@@ -28,11 +28,13 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `gotta-patch-em-all-font-patcher!.sh`: Patch one or more fonts 'complete' in all 3 variants 'standard', 'mono', and 'propo' [1]
 * `lib/`: See its own README
 * `name_parser/`: Suite to set up sane Family and SubFamily names, used by `font-patcher` (on demand)
+* `nfprov.py`: Reference encoder/decoder for inline typographic provenance marks in text [4]
 * `optimize-original-source.sh`: Run all icons in `src/svgs` through inkscape to simplify (remove nodes and edges) [5]
 * `release.sh`: Rough process how a release is created, not used (see `.github/workflows/release.yml`)
 * `standardize-and-complete-readmes.sh`: Used by `gotta-patch-em-all-font-patcher!.sh`
 * `test-fonts.sh`: Print-to-debug all glyphs we patch in [4]
 * `test-powerlines.sh`: Print-to-debug powerline examples [4]
+* `test-provenance.py`: Validate the provenance tables of a patched font (needs `fontTools`) [9]
 * `test-vertical-lines.sh`: Print-to-debug powerline examples [4]
 * `update-all-contributors-website.py`: Update the contributors page on `nerdfonts.com` (i.e. gh-pages) [7]
 * `update-gitignore.sh`: Correct gitignore file for not-released-in-repo fonts [8]
@@ -45,4 +47,5 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 [5] Used by CI (github packsvgs workflow)<br />
 [6] Used by CI (github casks workflow)<br />
 [7] Used by CI (github contributors workflow)<br />
-[8] Used by CI (github fontjson workflow)
+[8] Used by CI (github fontjson workflow)<br />
+[9] Used by CI (github font-patcher workflow)
