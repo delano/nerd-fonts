@@ -334,7 +334,11 @@ Release builds produce both families. `gotta-patch-em-all-font-patcher!.sh`
 patches every source font twice per variant: once as the plain Nerd Font and
 once with `--provenance`, so each family directory under `patched-fonts/`
 holds the plain files and the `P+` files side by side, and the per-family
-archives contain both. The style comes from the `NERDFONTS_PROVENANCE`
+archives contain both. Only the plain files are committed back to the
+repository: `bin/scripts/update-gitignore.sh` adds a `patched-fonts/**/*P+-*`
+rule to `.gitignore`, so the `P+` family is distributed through the release
+archives alone and does not grow the repository history.
+The style comes from the `NERDFONTS_PROVENANCE`
 environment variable (`identical`, `subtle`, or `explicit`; default `subtle`);
 `none` skips the `P+` builds. `NERDFONTS` still adds options to every call.
 Provenance stays opt-in for users, not for the build: the `P+` family is a
