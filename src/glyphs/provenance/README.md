@@ -488,6 +488,7 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | rio                               | Selectors dropped, no marks; PUA line marked            |
 | Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
 | VS Code editor                    | Correct: selector and PUA lines both marked             |
+| OnetimePad (Swift shell, Rust core) | Correct: selector and PUA lines both marked, pasted from the browser |
 | VS Code integrated terminal       | Not yet tested                                          |
 | kitty, WezTerm, Ghostty, iTerm2   | Not yet tested                                          |
 
@@ -502,11 +503,15 @@ selector encoding does not, which is the reverse of the fallback story for
 fonts without provenance glyphs. Terminal.app confirms the probe on screen:
 the selector-encoded line is plain and the PUA-encoded line carries the marks.
 rio behaves the same way with its own shaper. iTerm2 and Ghostty shape through
-CoreText and are expected to match Terminal.app. VS Code's editor renders
-through Chromium and shows marks for both encodings. Zed additionally shows
-extra spacing in some conditions; that is a Zed display artifact, not CoreText
-fallback, and is documented separately in `zed-about.md`. Whether CoreText can
-be made to honour the selectors, for example by registering the sequences
+C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 a󠄁n󠄁d󠄁 a󠄁r󠄁e󠄁 e󠄁x󠄁p󠄁e󠄁c󠄁t󠄁e󠄁d󠄁 t󠄁o󠄁 m󠄁a󠄁t󠄁c󠄁h󠄁 T󠄁e󠄁r󠄁m󠄁i󠄁n󠄁a󠄁l󠄁.󠄁a󠄁p󠄁p󠄁.󠄁 O󠄁n󠄁e󠄁t󠄁i󠄁m󠄁e󠄁P󠄁a󠄁d󠄁,󠄁 a󠄁 m󠄁a󠄁c󠄁O󠄁S󠄁 a󠄁p󠄁p󠄁 w󠄁i󠄁t󠄁h󠄁 a󠄁
+S󠄁w󠄁i󠄁f󠄁t󠄁 s󠄁h󠄁e󠄁l󠄁l󠄁 a󠄁n󠄁d󠄁 a󠄁 R󠄁u󠄁s󠄁t󠄁 c󠄁o󠄁r󠄁e󠄁,󠄁 m󠄁a󠄁r󠄁k󠄁s󠄁 b󠄁o󠄁t󠄁h󠄁 e󠄁n󠄁c󠄁o󠄁d󠄁i󠄁n󠄁g󠄁s󠄁 w󠄁i󠄁t󠄁h󠄁 t󠄁h󠄁e󠄁 r󠄁e󠄁l󠄁e󠄁a󠄁s󠄁e󠄁 A󠄁g󠄁a󠄁v󠄁e󠄁 P󠄁+󠄁
+b󠄁u󠄁i󠄁l󠄁d󠄁,󠄁 w󠄁h󠄁i󠄁l󠄁e󠄁 t󠄁h󠄁e󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 p󠄁r󠄁o󠄁b󠄁e󠄁 r󠄁u󠄁n󠄁 a󠄁g󠄁a󠄁i󠄁n󠄁s󠄁t󠄁 t󠄁h󠄁a󠄁t󠄁 s󠄁a󠄁m󠄁e󠄁 f󠄁o󠄁n󠄁t󠄁 f󠄁i󠄁l󠄁e󠄁 s󠄁t󠄁i󠄁l󠄁l󠄁 d󠄁r󠄁o󠄁p󠄁s󠄁
+t󠄁h󠄁e󠄁 s󠄁e󠄁l󠄁e󠄁c󠄁t󠄁o󠄁r󠄁.󠄁 I󠄁t󠄁s󠄁 t󠄁e󠄁x󠄁t󠄁 t󠄁h󠄁e󠄁r󠄁e󠄁f󠄁o󠄁r󠄁e󠄁 d󠄁o󠄁e󠄁s󠄁 n󠄁o󠄁t󠄁 g󠄁o󠄁 t󠄁h󠄁r󠄁o󠄁u󠄁g󠄁h󠄁 p󠄁l󠄁a󠄁i󠄁n󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 l󠄁i󠄁n󠄁e󠄁
+l󠄁a󠄁y󠄁o󠄁u󠄁t󠄁;󠄁 w󠄁h󠄁i󠄁c󠄁h󠄁 s󠄁h󠄁a󠄁p󠄁e󠄁r󠄁 i󠄁t󠄁 u󠄁s󠄁e󠄁s󠄁 i󠄁s󠄁 n󠄁o󠄁t󠄁 y󠄁e󠄁t󠄁 c󠄁o󠄁n󠄁f󠄁i󠄁r󠄁m󠄁e󠄁d󠄁.󠄁 V󠄁S󠄁 C󠄁o󠄁d󠄁e󠄁'󠄁s󠄁 e󠄁d󠄁i󠄁t󠄁o󠄁r󠄁 r󠄁e󠄁n󠄁d󠄁e󠄁r󠄁s󠄁
+t󠄁h󠄁r󠄁o󠄁u󠄁g󠄁h󠄁 C󠄁h󠄁r󠄁o󠄁m󠄁i󠄁u󠄁m󠄁 a󠄁n󠄁d󠄁 s󠄁h󠄁o󠄁w󠄁s󠄁 m󠄁a󠄁r󠄁k󠄁s󠄁 f󠄁o󠄁r󠄁 b󠄁o󠄁t󠄁h󠄁 e󠄁n󠄁c󠄁o󠄁d󠄁i󠄁n󠄁g󠄁s󠄁.󠄁 Z󠄁e󠄁d󠄁 a󠄁d󠄁d󠄁i󠄁t󠄁i󠄁o󠄁n󠄁a󠄁l󠄁l󠄁y󠄁 s󠄁h󠄁o󠄁w󠄁s󠄁
+e󠄁x󠄁t󠄁r󠄁a󠄁 s󠄁p󠄁a󠄁c󠄁i󠄁n󠄁g󠄁 i󠄁n󠄁 s󠄁o󠄁m󠄁e󠄁 c󠄁o󠄁n󠄁d󠄁i󠄁t󠄁i󠄁o󠄁n󠄁s󠄁;󠄁 t󠄁h󠄁a󠄁t󠄁 i󠄁s󠄁 a󠄁 Z󠄁e󠄁d󠄁 d󠄁i󠄁s󠄁p󠄁l󠄁a󠄁y󠄁 a󠄁r󠄁t󠄁i󠄁f󠄁a󠄁c󠄁t󠄁,󠄁 n󠄁o󠄁t󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁
+f󠄁a󠄁l󠄁l󠄁b󠄁a󠄁c󠄁k󠄁,󠄁 a󠄁n󠄁d󠄁 i󠄁s󠄁 d󠄁o󠄁c󠄁u󠄁m󠄁e󠄁n󠄁t󠄁e󠄁d󠄁 s󠄁e󠄁p󠄁a󠄁r󠄁a󠄁t󠄁e󠄁l󠄁y󠄁 i󠄁n󠄁 `󠄁z󠄁e󠄁d󠄁-󠄁a󠄁b󠄁o󠄁u󠄁t󠄁.󠄁m󠄁d󠄁`󠄁.󠄁 W󠄁h󠄁e󠄁t󠄁h󠄁e󠄁r󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 c󠄁a󠄁n󠄁
+b󠄁e󠄁 m󠄁a󠄁d󠄁e󠄁 t󠄁o󠄁 h󠄁o󠄁n󠄁o󠄁u󠄁r󠄁 t󠄁h󠄁e󠄁 s󠄁e󠄁l󠄁e󠄁c󠄁t󠄁o󠄁r󠄁s󠄁,󠄁 f󠄁o󠄁r󠄁 e󠄁x󠄁a󠄁m󠄁p󠄁l󠄁e󠄁 b󠄁y󠄁 r󠄁e󠄁g󠄁i󠄁s󠄁t󠄁e󠄁r󠄁i󠄁n󠄁g󠄁 t󠄁h󠄁e󠄁 s󠄁e󠄁q󠄁u󠄁e󠄁n󠄁c󠄁e󠄁s󠄁
 differently in `cmap`, is an open question.
 
 The terminal checks were made with the fonts from `generate-provenance-example.sh`
