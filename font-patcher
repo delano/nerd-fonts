@@ -12,6 +12,10 @@ version = "3.5.1"
 projectName = "Nerd Fonts"
 projectNameAbbreviation = "NF"
 projectNameSingular = projectName[:-1]
+projectFork = "delano/nerd-fonts"   # empty string disables all fork markers
+# Family marker for --provenance builds. Kept to 3 chars because "JetBrainsMono Nerd Font Mono" is already 28 of the 31-char Family (ID 1) limit.
+# Independent of projectFork: upstream adopting --provenance would still need the marker.
+provenanceFamilySuffix = "P+"
 
 import argparse
 from enum import Enum
@@ -794,6 +798,12 @@ class font_patcher:
         verboseAdditionalFontNameSuffix = " " + projectNameSingular + variant_full + verboseAdditionalFontNameSuffix
         additionalFontNameSuffix = " " + projectNameSingular + variant_full + additionalFontNameSuffix
 
+        # Provenance marker goes into every suffix flavor so that Family, Fullname and PostScriptName all carry it
+        if self.args.provenance:
+            ps_suffix += " " + provenanceFamilySuffix
+            verboseAdditionalFontNameSuffix += " " + provenanceFamilySuffix
+            additionalFontNameSuffix += " " + provenanceFamilySuffix
+
         if FontnameParserOK and self.args.makegroups > 0:
             user_supplied_name = False # User supplied names are kept unchanged
             if not isinstance(self.args.force_name, str):
@@ -877,6 +887,8 @@ class font_patcher:
             subFamily = "Regular"
 
         familyname += " " + projectNameSingular + variant_full
+        if self.args.provenance:
+            familyname += " " + provenanceFamilySuffix
 
         # Don't truncate the subfamily to keep fontname unique.  MacOS treats fonts with
         # the same name as the same font, even if subFamily is different. Make sure to
@@ -949,6 +961,7 @@ class font_patcher:
             "* Website: https://www.nerdfonts.com\n"
             "* Version: " + version + "\n"
             "* Development Website: https://github.com/ryanoasis/nerd-fonts\n"
+            + ("* Built from: https://github.com/" + projectFork + "\n" if projectFork else "") +
             "* Added icons' authors and copyright: https://github.com/ryanoasis/nerd-fonts/blob/-/src/glyphs/README.md"
         )
 
@@ -978,6 +991,9 @@ class font_patcher:
             # Add Nerd Font suffix unless user specifically asked for some excplicit name via --name
             if not user_supplied_name:
                 short_family = projectNameAbbreviation + variant_abbrev if self.args.makegroups >= 4 else projectNameSingular + variant_full
+                if self.args.provenance:
+                    # Must go into short_family: with makegroups ID 1 and ID 4 are built from it, the verbose suffix only reaches ID 16
+                    short_family += " " + provenanceFamilySuffix
                 # inject_suffix(family, ps_fontname, short_family)
                 n.inject_suffix(verboseAdditionalFontNameSuffix, ps_suffix, short_family)
             n.rename_font(font)
@@ -989,10 +1005,14 @@ class font_patcher:
     def setup_version(self):
         """ Add the Nerd Font version to the original version """
         # print("Version was {}".format(sourceFont.version))
+        # The fork segment goes ahead of the Nerd Fonts one so the trailing ";Nerd Fonts <ver>" stays intact for tag_provenance_version() and the UniqueID
+        version_suffix = ";" + projectName + " " + version
+        if projectFork:
+            version_suffix = ";" + projectFork + version_suffix
         if self.sourceFont.version != None:
-            self.sourceFont.version += ";" + projectName + " " + version
+            self.sourceFont.version += version_suffix
         else:
-            self.sourceFont.version = str(self.sourceFont.cidversion) + ";" + projectName + " " + version
+            self.sourceFont.version = str(self.sourceFont.cidversion) + version_suffix
         self.sourceFont.sfntRevision = None # Auto-set (refreshed) by fontforge
         self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), "Version " + self.sourceFont.version)
         # The Version SFNT name is later reused by the NameParser for UniqueID

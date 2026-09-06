@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Nerd Fonts Version: 3.5.1
-# Script Version: 1.0.0
+# Script Version: 1.1.0
 # CI validator for provenance-patched fonts
 #
 ### DEPENDENCY:
@@ -44,7 +44,8 @@ def load_mapping(path):
                  for name, value in mapping["variation_selectors"].items()}
     pua = {int(key[2:], 16): int(entry["base"][2:], 16)
            for key, entry in mapping["pua"].items()}
-    return selectors, pua
+    # The profile version is what font-patcher announces as ";NFProv <n>"
+    return selectors, pua, mapping["version"]
 
 
 def find_format14(font):
@@ -54,9 +55,17 @@ def find_format14(font):
     return None
 
 
-def check_font(font_path, mapping_path, reference_path):
-    selectors, pua = load_mapping(mapping_path)
+def check_font(font_path, mapping_path, reference_path, check_naming=True):
+    selectors, pua, profile = load_mapping(mapping_path)
     font = TTFont(font_path)
+    reference = TTFont(reference_path) if reference_path else None
+
+    # Names are checked before the cmap gate so a font built without
+    # --provenance reports the missing suffix/tag, not just the missing table.
+    if check_naming:
+        check_names(font, profile, reference)
+    else:
+        print("SKIP: name table checks (synthetic font)")
 
     uvs_table = find_format14(font)
     if not report(uvs_table is not None, "format 14 cmap subtable",
@@ -121,13 +130,89 @@ def check_font(font_path, mapping_path, reference_path):
     report(width_ok, "variant advance widths match base",
            detail if not width_ok else "")
 
-    if reference_path:
-        check_metrics(font, TTFont(reference_path))
+    if reference is not None:
+        check_metrics(font, reference)
     else:
         print("SKIP: metric comparison (no --reference given)")
 
     print("bases checked: {}".format(checked))
     print("bases absent from font: {}".format(absent))
+
+
+def name_record(font, name_id):
+    """Return name ID as str, preferring Windows/en-US; None if absent."""
+    table = font["name"]
+    record = table.getName(name_id, 3, 1, 0x409)
+    if record is None:
+        for candidate in table.names:
+            if candidate.nameID == name_id:
+                record = candidate
+                break
+    return record.toUnicode() if record is not None else None
+
+
+def check_names(font, profile, reference=None):
+    """Assert the naming conventions font-patcher --provenance applies."""
+    suffix = " P+"
+    family = name_record(font, 1) or ""
+    full = name_record(font, 4) or ""
+    postscript = name_record(font, 6) or ""
+    unique = name_record(font, 3) or ""
+    version = name_record(font, 5) or ""
+    typo_family = name_record(font, 16)
+
+    report(family.endswith(suffix), "ID 1 family ends with P+", family)
+    report(" P+ " in full, "ID 4 full name contains P+", full)
+    report("P+" in postscript.split("-", 1)[0],
+           "ID 6 PostScript name has P+ before the hyphen", postscript)
+    if typo_family is not None:
+        report(typo_family.endswith(suffix), "ID 16 typographic family ends with P+",
+               typo_family)
+
+    # ID 1 must fit the 31 character legacy limit. The only accepted overflow is
+    # the " Propo P+" form at exactly 32 (JetBrainsMono Nerd Font Propo P+).
+    if len(family) == 32 and family.endswith(" Propo P+"):
+        print("INFO: ID 1 family is 32 chars, accepted Propo overflow ({})".format(
+            family))
+    else:
+        report(len(family) <= 31, "ID 1 family length <= 31",
+               "{} chars: {}".format(len(family), family))
+
+    # ID 5 segments: [...;][fork;]NFProv <profile>;Nerd Fonts <ver>
+    segments = version.split(";")
+    prov_tag = "NFProv {}".format(profile)
+    prov_index = segments.index(prov_tag) if prov_tag in segments else -1
+    report(prov_index >= 0, "ID 5 version carries {}".format(prov_tag), version)
+    report(segments[-1].startswith("Nerd Fonts "),
+           "ID 5 version ends with the Nerd Fonts segment", segments[-1])
+    report(prov_index == len(segments) - 2,
+           "ID 5 NFProv segment directly precedes the Nerd Fonts segment", version)
+    fork = [i for i, seg in enumerate(segments) if seg.endswith("/nerd-fonts")]
+    if not fork:
+        print("INFO: ID 5 has no fork segment (projectFork blank)")
+    elif prov_index >= 0:
+        report(fork[-1] < prov_index, "ID 5 fork segment precedes NFProv", version)
+
+    # rename_font() derives the UniqueID from the last token of the Version name
+    last_token = version.split()[-1] if version.split() else ""
+    report(bool(last_token) and unique.endswith(last_token),
+           "ID 3 unique ID ends with last Version token",
+           "{!r} vs {!r}".format(unique, last_token))
+
+    if reference is None:
+        print("SKIP: untouched name IDs comparison (no --reference given)")
+        return
+    bad = []
+    for name_id in (0, 7, 8, 9, 10, 11, 12, 13, 14):
+        got = name_record(font, name_id)
+        want = name_record(reference, name_id)
+        if got != want:
+            bad.append("ID {}".format(name_id))
+    got_vendor = font["OS/2"].achVendID
+    want_vendor = reference["OS/2"].achVendID
+    if got_vendor != want_vendor:
+        bad.append("achVendID {!r} != {!r}".format(got_vendor, want_vendor))
+    report(not bad, "untouched name IDs and vendor match reference", "; ".join(bad))
 
 
 def check_metrics(font, reference):
@@ -150,7 +235,7 @@ def selftest(mapping_path):
     from fontTools.pens.ttGlyphPen import TTGlyphPen
     from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 
-    selectors, pua = load_mapping(mapping_path)
+    selectors, pua, _profile = load_mapping(mapping_path)
     base_cp, pua_cp = 0x0041, 0x100041
     names = [".notdef", "A", "A.ai", "A.human", "A.unknown"]
     builder = FontBuilder(1000, isTTF=True)
@@ -182,7 +267,7 @@ def selftest(mapping_path):
                        "variation_selectors": {k: "U+{:04X}".format(v)
                                                for k, v in selectors.items()},
                        "pua": limited}, handle)
-        check_font(font_path, map_path, None)
+        check_font(font_path, map_path, None, check_naming=False)
     return 1 if FAILURES else 0
 
 

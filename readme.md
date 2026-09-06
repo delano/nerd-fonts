@@ -15,7 +15,7 @@
 
 </div>
 
-> **This is a fork.** [ryanoasis/nerd-fonts][repo] is the upstream project and the place for releases, installation, and support. This fork adds a `--provenance` option to `font-patcher` that marks glyphs with the [provenance profile](src/glyphs/provenance/README.md). Fonts built with it carry a `Prov` family suffix (for example `Hack Nerd Font Mono Prov`) so they never collide with an official Nerd Font. Everything else is intended to match upstream and to be contributed back.
+> **This is a fork.** [ryanoasis/nerd-fonts][repo] is the upstream project and the place for releases, installation, and support. This fork adds a `--provenance` option to `font-patcher` that marks glyphs with the [provenance profile](src/glyphs/provenance/README.md). Fonts built with it carry a `P+` family suffix (for example `Hack Nerd Font Mono P+`) so they never collide with an official Nerd Font. Everything else is intended to match upstream and to be contributed back.
 
 **Nerd Fonts** is a project that patches developer targeted fonts with a high number of glyphs (icons). Specifically to add a high number of extra glyphs from popular 'iconic fonts' such as [Font Awesome][font-awesome], [Devicons][devicons], [Octicons][octicons], and [others](#glyph-sets).
 
