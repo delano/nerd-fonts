@@ -162,7 +162,7 @@ def check_names(font, profile, reference=None):
     typo_family = name_record(font, 16)
 
     report(family.endswith(suffix), "ID 1 family ends with P+", family)
-    report(" P+ " in full, "ID 4 full name contains P+", full)
+    report(" P+" in full, "ID 4 full name contains P+", full)
     report("P+" in postscript.split("-", 1)[0],
            "ID 6 PostScript name has P+ before the hyphen", postscript)
     if typo_family is not None:
