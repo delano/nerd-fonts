@@ -90,7 +90,7 @@ sample="${outputdir}/sample.txt"
 } > "$sample"
 
 echo "Sample text: $sample"
-python3 "$nfprov" inspect "$sample" | grep -E '^(characters|explicit_human|ai_vs|unknown):'
+python3 "$nfprov" inspect "$sample" | grep -E '^(characters|explicit_human|ai_vs|ai_pua|unknown):'
 
 # Build the plain reference once; it is the same font without --provenance.
 plaindir="${outputdir}/plain"
