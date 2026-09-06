@@ -14,6 +14,9 @@ The protocol itself (states, encodings, fallback behaviour, and editor semantics
 is defined in the design document "Inline Typographic Provenance for Nerd
 Fonts". This README covers only how it is wired into this repository.
 
+Acceptance criteria (must have, may have, non-goals) and the approaches they
+rule out are in [CRITERIA.md](CRITERIA.md).
+
 ## Behaviour
 
 A provenance-aware patched font renders marked text with variants derived from
