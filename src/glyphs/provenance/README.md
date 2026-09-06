@@ -14,6 +14,9 @@ The protocol itself (states, encodings, fallback behaviour, and editor semantics
 is defined in the design document "Inline Typographic Provenance for Nerd
 Fonts". This README covers only how it is wired into this repository.
 
+Acceptance criteria (must have, may have, non-goals) and the approaches they
+rule out are in [CRITERIA.md](CRITERIA.md).
+
 ## Behaviour
 
 A provenance-aware patched font renders marked text with variants derived from
@@ -344,14 +347,18 @@ Repeat for `--mono`, `--variable-width-glyphs`, and an OTF source.
 
 Measured with FontForge 20251009 and HarfBuzz.
 
-- **Ligatures are lost, and this is a hard limitation.** On FiraCode, `calt`
-  ligatures do not form whenever any member of the sequence carries a
-  provenance selector; PUA code points inherit no lookups at all. The mechanism:
-  variation selectors are General Category `Mn`, and contextual and ligature
-  lookups that do not set `IgnoreMarks` stop matching across one. This is a
-  property of the protocol, not of the patcher. There is no partial degradation
-  and no workaround in the font. Kerning is likewise not inherited by marked or
-  PUA text.
+- **Ligatures are lost.** On FiraCode, `calt` ligatures do not form whenever
+  any member of the sequence carries a provenance selector; PUA code points
+  inherit no lookups at all. The mechanism is a glyph-ID mismatch, not an
+  intervening mark: the format 14 `cmap` resolves `<base, VS>` to the variant
+  glyph before GSUB runs, so the source font's lookups see `equal.ai
+  greater.ai` where they expect `equal greater`, and no selector glyph remains
+  in the stream. Setting `IgnoreMarks` on the source lookups would therefore
+  change nothing. There is no partial degradation. Kerning is likewise not
+  inherited by marked or PUA text, for the same reason. A font-side fix is
+  possible in principle (an early `ccmp` split of each variant back into the
+  base glyph plus a zero-advance marker glyph that the source lookups skip) but
+  is not implemented; see issue #3.
 - **Fallback is asymmetric.** In a font without provenance glyphs, `base + VS`
   renders as the base glyph followed by a zero-advance selector, while a PUA
   code point renders `.notdef`. The variation-selector encoding is therefore

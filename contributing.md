@@ -1,5 +1,9 @@
 # Contributing Guide
 
+## This fork
+
+This repository is a fork of [ryanoasis/nerd-fonts][upstream]. Only changes to the provenance feature (`--provenance` in `font-patcher`, `src/glyphs/provenance/`, and the `Prov` family suffix) belong here. Everything else, including new fonts, icon sets, and patcher fixes, should go to upstream so this fork stays mergeable. The guide below is upstream's and applies unchanged.
+
 **Working on your first Pull Request?** You can learn how from this *free* series [How to Contribute to an Open Source Project on GitHub][First PR]
 
 ## How to contribute summary
@@ -118,6 +122,7 @@ Codepoints in the code set are a scarce resource, so in general it is unlikely t
 
 <!-- link references -->
 
+[upstream]: https://github.com/ryanoasis/nerd-fonts
 [pulls]: https://github.com/ryanoasis/nerd-fonts/pulls
 [Features Section]: https://github.com/ryanoasis/nerd-fonts/blob/-/readme.md#features
 [Combinations Section]: https://github.com/ryanoasis/nerd-fonts/blob/-/readme.md#combinations

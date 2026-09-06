@@ -2,6 +2,14 @@ name: Bug Report
 description: Help us improve by reporting an issue.
 
 body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is a fork of [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts).
+        Only report problems with the provenance feature here (`--provenance`, the `Prov`
+        family suffix, or fonts named like `Hack Nerd Font Mono Prov`). Anything else
+        belongs in the [upstream issue tracker](https://github.com/ryanoasis/nerd-fonts/issues).
+
   - type: checkboxes
     attributes:
       label: Requirements

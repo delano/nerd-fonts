@@ -5,6 +5,13 @@ body:
   - type: markdown
     attributes:
       value: |
+        This repository is a fork of [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts).
+        Icon requests are not handled here. Please open them in the
+        [upstream issue tracker](https://github.com/ryanoasis/nerd-fonts/issues).
+
+  - type: markdown
+    attributes:
+      value: |
         NerdFonts is a Icon Set aggregator, i.e. it takes whole sets of icons
         and combines them into a font. As such it does not add individual
         icons - except in exceptional circumstances.
