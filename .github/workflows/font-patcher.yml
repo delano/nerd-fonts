@@ -138,7 +138,7 @@ jobs:
         run: |
           python3 bin/scripts/test-provenance.py \
           --reference "$GITHUB_WORKSPACE/temp/HackNerdFont-Regular.ttf" \
-          "$GITHUB_WORKSPACE/temp/prov/HackNerdFont-Regular.ttf"
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontP+-Regular.ttf"
 
       - name: Patcher provenance monospaced
         run: |
@@ -149,7 +149,7 @@ jobs:
         run: |
           python3 bin/scripts/test-provenance.py \
           --reference "$GITHUB_WORKSPACE/temp/HackNerdFontMono-Regular.ttf" \
-          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontMono-Regular.ttf"
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontMonoP+-Regular.ttf"
 
       - name: Check if font with references is patched
         # (patch result not checked)
