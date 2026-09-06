@@ -4,6 +4,11 @@
 #
 # You can supply options to the font-patcher via environment variable NERDFONTS
 # That option will override the defaults (also defaults of THIS script).
+#
+# Every font is patched twice: once as a plain Nerd Font and once with
+# --provenance, which yields the separate "P+" family next to it. The
+# presentation style comes from NERDFONTS_PROVENANCE (identical, subtle, or
+# explicit; default subtle). Set it to "none" to build only the plain fonts.
 
 # used for debugging
 # set -x
@@ -33,6 +38,14 @@ repo_root_dir=$(dirname "$(dirname "${sd}")") # two levels up (i.e. ../../)
 last_font_root=""
 unpatched_parent_dir="src/unpatched-fonts"
 patched_parent_dir="patched-fonts"
+provenance_style="${NERDFONTS_PROVENANCE-subtle}"
+case "${provenance_style}" in
+  identical|subtle|explicit) provenance_builds=("" "--provenance=${provenance_style}") ;;
+  none|off|"") provenance_builds=("") ;;
+  *)
+    echo >&2 "$LINE_PREFIX NERDFONTS_PROVENANCE must be identical, subtle, explicit, or none (got '${provenance_style}')"
+    exit 1;;
+esac
 timestamp_parent_dir=${patched_parent_dir}
 source_fonts_dir="${repo_root_dir}/${unpatched_parent_dir}"
 max_parallel_process=8
@@ -66,6 +79,12 @@ function show_help {
   echo "        -i, --info          Rebuild JUST the readmes"
   echo "        -j, --jobs          Run up to 8 patch processes in parallel"
   echo "        -h, --help          Show this help"
+  echo
+  echo "    ENVIRONMENT:"
+  echo "        NERDFONTS             Extra options passed to every font-patcher call"
+  echo "        NERDFONTS_PROVENANCE  Style of the additional P+ (provenance) family built"
+  echo "                              next to each plain font: identical, subtle (default),"
+  echo "                              explicit, or none to skip the P+ builds"
   echo
   echo "    FILTER:"
   echo "        The filter argument to this script is a filter for the fonts to patch."
@@ -221,6 +240,30 @@ else
 fi
 echo "$LINE_PREFIX Release timestamp is ${release_timestamp}"
 
+# Run font-patcher once
+# $1 = source font file
+# $2 = config file option (or "-q" when there is none)
+# $3 = destination directory
+# $4 = variant option: "" (normal), "-s" (Mono), or "--variable" (Propo)
+# $5 = provenance option: "" (plain family) or "--provenance=<style>" (P+ family)
+function run_patcher {
+  local f=$1; shift
+  local font_config=$1; shift
+  local patched_font_dir=$1; shift
+  local variant_args=$1; shift
+  local provenance_args=$1; shift
+
+  if [ -n "${verbose}" ]
+  then
+    echo "fontforge -quiet -script \"${PWD}/font-patcher\" --debug 1 \"$f\" -q ${variant_args} ${provenance_args} \"${font_config}\" -c --no-progressbars --outputdir \"${patched_font_dir}\" ${NERDFONTS}"
+  fi
+  # shellcheck disable=SC2086 # We want splitting for the unquoted variables to get multiple options out of them
+  { OUT=$(fontforge -quiet -script "${PWD}/font-patcher" --debug 1 "$f" -q ${variant_args} ${provenance_args} "${font_config}" -c --no-progressbars \
+                    --outputdir "${patched_font_dir}" ${NERDFONTS} 2>&1 1>&3 3>&- ); } 3>&1
+  # shellcheck disable=SC2181 # Checking the code directly is very unreadable here, as we execute a whole block
+  if [ $? -ne 0 ]; then printf "%s\nPatcher run aborted!\n\n" "$OUT"; fi
+}
+
 function patch_font {
   local f=$1; shift
   local i=$1; shift
@@ -300,36 +343,17 @@ function patch_font {
   # Add logfile always (but can be overridden by config.cfg and env var NERDFONTS)
   # Use absolute path to allow fontforge being an AppImage (used in CI)
   PWD=$(pwd)
-  # Create "Nerd Font"
-  if [ -n "${verbose}" ]
-  then
-    echo "fontforge -quiet -script \"${PWD}/font-patcher\" --debug 1 \"$f\" -q \"${font_config}\" -c --no-progressbars --outputdir \"${patched_font_dir}\" ${NERDFONTS}"
-  fi
-  # shellcheck disable=SC2086 # We want splitting for the unquoted variables to get multiple options out of them
-  { OUT=$(fontforge -quiet -script "${PWD}/font-patcher" --debug 1 "$f" -q "${font_config}" -c --no-progressbars \
-                    --outputdir "${patched_font_dir}" ${NERDFONTS} 2>&1 1>&3 3>&- ); } 3>&1
-  # shellcheck disable=SC2181 # Checking the code directly is very unreadable here, as we execute a whole block
-  if [ $? -ne 0 ]; then printf "%s\nPatcher run aborted!\n\n" "$OUT"; fi
-  # Create "Nerd Font Mono"
-  if [ -n "${verbose}" ]
-  then
-    echo "fontforge -quiet -script \"${PWD}/font-patcher\" --debug 1 \"$f\" -q -s \"${font_config}\" -c --no-progressbars --outputdir \"${patched_font_dir}\" ${NERDFONTS}"
-  fi
-  # shellcheck disable=SC2086 # We want splitting for the unquoted variables to get multiple options out of them
-  { OUT=$(fontforge -quiet -script "${PWD}/font-patcher" --debug 1 "$f" -q -s "${font_config}" -c --no-progressbars \
-                    --outputdir "${patched_font_dir}" ${NERDFONTS} 2>&1 1>&3 3>&- ); } 3>&1
-  # shellcheck disable=SC2181 # Checking the code directly is very unreadable here, as we execute a whole block
-  if [ $? -ne 0 ]; then printf "%s\nPatcher run aborted!\n\n" "$OUT"; fi
-  # Create "Nerd Font Propo"
-  if [ -n "${verbose}" ]
-  then
-    echo "fontforge -quiet -script \"${PWD}/font-patcher\" --debug 1 \"$f\" -q --variable \"${font_config}\" -c --no-progressbars --outputdir \"${patched_font_dir}\" ${NERDFONTS}"
-  fi
-  # shellcheck disable=SC2086 # We want splitting for the unquoted variables to get multiple options out of them
-  { OUT=$(fontforge -quiet -script "${PWD}/font-patcher" --debug 1 "$f" -q --variable "${font_config}" -c --no-progressbars \
-                    --outputdir "${patched_font_dir}" ${NERDFONTS} 2>&1 1>&3 3>&- ); } 3>&1
-  # shellcheck disable=SC2181 # Checking the code directly is very unreadable here, as we execute a whole block
-  if [ $? -ne 0 ]; then printf "%s\nPatcher run aborted!\n\n" "$OUT"; fi
+  # Create "Nerd Font", "Nerd Font Mono", and "Nerd Font Propo", each as the plain
+  # family and (unless NERDFONTS_PROVENANCE=none) as the "P+" family
+  local variant_args
+  for variant_args in "" "-s" "--variable"
+  do
+    local provenance_args
+    for provenance_args in "${provenance_builds[@]}"
+    do
+      run_patcher "$f" "$font_config" "$patched_font_dir" "$variant_args" "$provenance_args"
+    done
+  done
 
   # wait for this group of background processes to finish to avoid forking too many processes
   # that can add up quickly with the number of combinations
