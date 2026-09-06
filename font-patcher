@@ -378,7 +378,8 @@ class font_patcher:
         self.xavgwidth = [] # list of ints
         self.glyphnames = fetch_glyphnames()
         self.copy_glyphs_last = {'header': '', 'maximum': 0}
-        self.provenance_mark = False # Later None or the 'provenance.mark' glyph
+        self.provenance_marks = {} # state -> the 'provenance.mark.<state>' glyph or None
+        self.provenance_depth_warned = False
 
     def patch(self, font):
         self.sourceFont = font
@@ -546,13 +547,13 @@ class font_patcher:
             # <base, VS_AI>; the other two are unencoded and selector-only.
             ai = self.sourceFont.createChar(pua, basename + ".ai")
             # Built lazily, so a font where every base is skipped gains no stray mark
-            self.derive_provenance_glyph(ai, base_glyph, self.create_provenance_mark())
+            self.derive_provenance_glyph(ai, base_glyph, self.create_provenance_mark("ai"))
             ai.altuni = ((base, selectors["ai"], 0),)
 
             for state in ("human", "unknown"):
                 # createChar(-1, name) creates an unencoded glyph
                 glyph = self.sourceFont.createChar(-1, basename + "." + state)
-                self.derive_provenance_glyph(glyph, base_glyph, None)
+                self.derive_provenance_glyph(glyph, base_glyph, self.create_provenance_mark(state))
                 glyph.altuni = ((base, selectors[state], 0),)
             added += 1
 
@@ -592,12 +593,19 @@ class font_patcher:
         glyph.manualHints = True
 
 
-    def create_provenance_mark(self):
-        """ Create the single unencoded 'provenance.mark' glyph used by the marked presentation styles """
-        if self.provenance_mark is not False:
-            return self.provenance_mark
-        self.provenance_mark = None
-        if self.args.provenance == 'identical':
+    def create_provenance_mark(self, state):
+        """ Create the unencoded 'provenance.mark.<state>' glyph used by the marked presentation styles """
+        # 'human' is never marked: unmarked text is assumed human, so an explicit
+        # human mark would make the two states differ, which M1 forbids.
+        if state in self.provenance_marks:
+            return self.provenance_marks[state]
+        self.provenance_marks[state] = None
+        if self.args.provenance == 'identical' or state == 'human':
+            return None
+        # The dot vocabulary of 'subtle' has no room for a second distinguishable
+        # shape below the baseline, so only 'explicit' marks the unknown state for
+        # now; see the presentation-styles table in src/glyphs/provenance/README.md.
+        if state == 'unknown' and self.args.provenance != 'explicit':
             return None
 
         em = self.sourceFont.em
@@ -605,12 +613,14 @@ class font_patcher:
         # that the font's own descender never has to be lowered.
         depth = -self.font_dim['ymin']
         if depth <= em / 100:
-            logger.warning("No room below the baseline for provenance marks, using unmarked variants")
+            if not self.provenance_depth_warned:
+                self.provenance_depth_warned = True
+                logger.warning("No room below the baseline for provenance marks, using unmarked variants")
             return None
         margin = depth * 0.12
         usable = depth - 2 * margin
 
-        mark = self.sourceFont.createChar(-1, 'provenance.mark')
+        mark = self.sourceFont.createChar(-1, 'provenance.mark.' + state)
         pen = mark.glyphPen()
         if self.args.provenance == 'subtle':
             # About half the width of a typical period (Hack's is em/6.3), so the
@@ -629,18 +639,24 @@ class font_patcher:
             thickness = min(em / 48, usable)
             y0 = self.font_dim['ymin'] + margin
             y1 = y0 + thickness
-            # Canonical bar spanning 0 .. em, scaled per glyph in derive_provenance_glyph()
-            pen.moveTo((0, y1))
-            pen.lineTo((em, y1))
-            pen.lineTo((em, y0))
-            pen.lineTo((0, y0))
-            pen.closePath()
+            # Canonical bars spanning 0 .. em, scaled per glyph in derive_provenance_glyph().
+            # 'ai' is one solid bar, so a marked run reads as a continuous underline.
+            # 'unknown' is the middle half of the cell only, so a run reads as a dashed
+            # underline: same weight and position, unmistakably a different line.
+            spans = [(0, em)] if state == 'ai' else [(em / 4, em * 3 / 4)]
+            for x0, x1 in spans:
+                pen.moveTo((x0, y1))
+                pen.lineTo((x1, y1))
+                pen.lineTo((x1, y0))
+                pen.lineTo((x0, y0))
+                pen.closePath()
         pen = None
         mark.width = em
         mark.glyphclass = 'baseglyph'
         mark.manualHints = True
-        self.provenance_mark = mark
+        self.provenance_marks[state] = mark
         return mark
+
 
     def generate(self, sourceFonts):
         sourceFont = sourceFonts[0]
@@ -2456,7 +2472,7 @@ def setup_arguments():
     #  6  HugoSansMono NF XCn Lt It                                [X] [X] [X]
 
     sym_font_group = parser.add_argument_group('Symbol Fonts')
-    sym_font_group.add_argument('--provenance',                                 dest='provenance',           default=False, type=str, nargs='?', help='Add provenance variant Glyphs, can pass a string to control style (optional: *identical, subtle, explicit)', const='identical', choices=['identical', 'subtle', 'explicit'])
+    sym_font_group.add_argument('--provenance',                                 dest='provenance',           default=False, type=str, nargs='?', help='Add provenance variant Glyphs, can pass a string to control style (optional: identical, subtle, *explicit)', const='explicit', choices=['identical', 'subtle', 'explicit'])
     sym_font_group.add_argument('--braille',                                    dest='braille',              default=False, type=str, nargs='?', help='Add Braille Glyphs, can pass a string to control style (optional: *rectangle, circle, gapless)', const='rectangle', choices=['rectangle', 'circle', 'gapless'])
     sym_font_group.add_argument('--complete', '-c',                             dest='complete',             default=False, action='store_true', help='Add all available Glyphs')
     sym_font_group.add_argument('--codicons',                                   dest='codicons',             default=False, action='store_true', help='Add Codicons Glyphs (https://github.com/microsoft/vscode-codicons)')
