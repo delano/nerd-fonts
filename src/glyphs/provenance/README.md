@@ -475,18 +475,36 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | Chrome, Vivaldi                   | Correct                                                 |
 | Firefox                           | Correct                                                 |
 | Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
+| CoreText (`CTLineCreateWithAttributedString`) | Selector encoding: base glyph, selector dropped. PUA encoding: `.ai` glyph |
+| Terminal.app                      | Selectors dropped, no marks; PUA line marked            |
+| rio                               | Selectors dropped, no marks; PUA line marked            |
 | Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
-| Terminal emulators                | Not yet tested                                          |
+| VS Code editor                    | Correct: selector and PUA lines both marked             |
+| VS Code integrated terminal       | Not yet tested                                          |
+| kitty, WezTerm, Ghostty, iTerm2   | Not yet tested                                          |
 
 Safari, Orion and Zed all shape through CoreText, and none honoured
 the format 14 subtable for these private selectors. In Safari and Orion the
 text still renders cleanly (no boxes, no extra spacing), so the failure is
-silent. Other CoreText hosts such as Terminal.app and iTerm2 are expected to
-behave the same way; that is the next thing to verify. Zed additionally shows
+silent. A direct CoreText probe confirms the mechanism: for `<A, VS18>`
+CoreText returns the same glyph ID and advance as for a bare `A`, so the
+selector is consumed without effect, while `U+100041` resolves to `uni0041.ai`
+and renders the mark. Under CoreText the PUA encoding therefore works and the
+selector encoding does not, which is the reverse of the fallback story for
+fonts without provenance glyphs. Terminal.app confirms the probe on screen:
+the selector-encoded line is plain and the PUA-encoded line carries the marks.
+rio behaves the same way with its own shaper. iTerm2 and Ghostty shape through
+CoreText and are expected to match Terminal.app. VS Code's editor renders
+through Chromium and shows marks for both encodings. Zed additionally shows
 extra spacing in some conditions; that is a Zed display artifact, not CoreText
 fallback, and is documented separately in `zed-about.md`. Whether CoreText can
 be made to honour the selectors, for example by registering the sequences
 differently in `cmap`, is an open question.
+
+The terminal checks were made with the fonts from `generate-provenance-example.sh`
+copied into `~/Library/Fonts`, Terminal.app with a per-tab font override, rio
+with `RIO_CONFIG_HOME` pointing at a scratch config, and VS Code with a scratch
+`--user-data-dir`, so no user configuration was changed.
 
 ## Files intentionally unchanged
 
