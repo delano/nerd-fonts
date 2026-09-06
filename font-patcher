@@ -635,18 +635,33 @@ class font_patcher:
                 angle = corner * math.pi / 4
                 pen.lineTo((radius * math.sin(angle), cy + radius * math.cos(angle)))
             pen.closePath()
-        else:
+        elif state == 'ai':
             thickness = min(em / 48, usable)
             y0 = self.font_dim['ymin'] + margin
             y1 = y0 + thickness
-            # Canonical spans over 0 .. em, scaled per glyph in derive_provenance_glyph().
-            # 'ai' fills the cell, so a marked run reads as a continuous rule; 'unknown'
-            # fills its middle half, so a run reads as a dashed one.
-            x0, x1 = (0, em) if state == 'ai' else (em / 4, em * 3 / 4)
-            pen.moveTo((x0, y1))
-            pen.lineTo((x1, y1))
-            pen.lineTo((x1, y0))
-            pen.lineTo((x0, y0))
+            # Canonical bar over 0 .. em, scaled per glyph in derive_provenance_glyph(),
+            # so a marked run reads as one continuous underline.
+            pen.moveTo((0, y1))
+            pen.lineTo((em, y1))
+            pen.lineTo((em, y0))
+            pen.lineTo((0, y0))
+            pen.closePath()
+        else:
+            # A single triangle per cell, at the same weight as the 'ai' bar. Both
+            # ends sit in the valley, so consecutive cells join and a marked run
+            # reads as one continuous sawtooth rather than a row of chevrons.
+            thickness = min(em / 48, usable)
+            y0 = self.font_dim['ymin'] + margin
+            amplitude = min(em / 10, usable - thickness)
+            spine = ((0, y0), (em / 2, y0 + amplitude), (em, y0))
+            # Stroked by offsetting the spine vertically: the outline stays a
+            # straight-line polygon, and the apparent weight thins slightly on the
+            # diagonals, which is what a drawn stroke would do anyway.
+            pen.moveTo(spine[0])
+            for point in spine[1:]:
+                pen.lineTo(point)
+            for x, y in reversed(spine):
+                pen.lineTo((x, y + thickness))
             pen.closePath()
         pen = None
         mark.width = em

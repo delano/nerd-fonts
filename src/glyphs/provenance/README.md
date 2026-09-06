@@ -161,7 +161,7 @@ not rebuilt and the Version name is not tagged.
 | ----------- | ----------------------- | ------------------------------------------- | ------------------------------------------- |
 | `identical` | Reference to base glyph | Reference to base glyph                     | Reference to base glyph                     |
 | `subtle`    | Reference to base glyph | Reference to base glyph                     | Base glyph plus a dot below the baseline    |
-| `explicit`  | Reference to base glyph | Base glyph plus a bar under its middle half | Base glyph plus a bar under the cell        |
+| `explicit`  | Reference to base glyph | Base glyph plus a sawtooth under the cell   | Base glyph plus a bar under the cell        |
 
 `.human` is never marked, in any style. Unmarked text is assumed human, so a
 mark there would make the two states differ visually, which M1 forbids.
@@ -174,10 +174,15 @@ rule was prototyped as an alternative and rejected: it differed from `explicit`
 only in weight, and at terminal sizes both land in the same pixel row, so the
 distinction survived only as a grey level.
 
-`explicit` marks with a bar `em/48` thick. State is carried by the span: `ai`
-fills the cell, so a marked run reads as a continuous underline, and `unknown`
-fills its middle half (`em/4` to `3em/4`), so a run reads as a dashed one at the
-same weight and position.
+`explicit` marks with a stroke `em/48` thick. State is carried by the shape of
+that stroke, not by its weight or position: `ai` is a straight bar over the
+whole cell, so a marked run reads as a continuous underline, and `unknown` is a
+single triangle of amplitude `em/10` with both ends in the valley, so
+consecutive cells join and a run reads as one continuous sawtooth. The sawtooth
+outline is the spine offset vertically, which keeps it a straight-line polygon
+and thins the apparent weight slightly on the diagonals, as a drawn stroke
+would. A dashed rule was tried first and rejected: at terminal sizes it differed
+from the `ai` bar only in how much of each cell was inked.
 
 `subtle` leaves `unknown` unmarked. A second shape small enough to belong to the
 dot vocabulary is not reliably distinguishable from the dot at the sizes that
