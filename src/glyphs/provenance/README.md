@@ -157,40 +157,49 @@ not rebuilt and the Version name is not tagged.
 
 ### Presentation styles
 
-| Style       | `.human`                | `.unknown`                                    | `.ai`                                       |
-| ----------- | ----------------------- | --------------------------------------------- | ------------------------------------------- |
-| `identical` | Reference to base glyph | Reference to base glyph                       | Reference to base glyph                     |
-| `subtle`    | Reference to base glyph | Base glyph plus a hairline under its middle half | Base glyph plus a hairline under the cell   |
-| `explicit`  | Reference to base glyph | Base glyph plus a bar under its middle half   | Base glyph plus a bar under the cell        |
+| Style       | `.human`                | `.unknown`                                  | `.ai`                                       |
+| ----------- | ----------------------- | ------------------------------------------- | ------------------------------------------- |
+| `identical` | Reference to base glyph | Reference to base glyph                     | Reference to base glyph                     |
+| `subtle`    | Reference to base glyph | Reference to base glyph                     | Base glyph plus a dot below the baseline    |
+| `explicit`  | Reference to base glyph | Base glyph plus a bar under its middle half | Base glyph plus a bar under the cell        |
 
 `.human` is never marked, in any style. Unmarked text is assumed human, so a
 mark there would make the two states differ visually, which M1 forbids.
 
-Both marked styles draw the same rule below the baseline and differ only in
-weight: `explicit` is `em/48` thick and reads as an ordinary underline, `subtle`
-is `em/96` and reads as a hairline. The earlier `subtle` mark was an `em/24`
-octagonal dot; it did not register at terminal sizes, and growing it made it read
-as punctuation, so the dot was replaced by the hairline (issue #11).
+`subtle` marks with an octagonal dot of radius `em/12`, centred under the cell.
+That is about the size of a typical period (Hack's is `em/6.3` wide): it reads
+as punctuation up close, which is the cost of being visible at terminal sizes at
+all. The earlier `em/24` dot did not register at 14px (issue #11). A hairline
+rule was prototyped as an alternative and rejected: it differed from `explicit`
+only in weight, and at terminal sizes both land in the same pixel row, so the
+distinction survived only as a grey level.
 
-State is carried by the span, not the weight: `ai` fills the cell, so a marked
-run reads as a continuous rule, and `unknown` fills its middle half (`em/4` to
-`3em/4`), so a run reads as a dashed one at the same weight and position.
+`explicit` marks with a bar `em/48` thick. State is carried by the span: `ai`
+fills the cell, so a marked run reads as a continuous underline, and `unknown`
+fills its middle half (`em/4` to `3em/4`), so a run reads as a dashed one at the
+same weight and position.
+
+`subtle` leaves `unknown` unmarked. A second shape small enough to belong to the
+dot vocabulary is not reliably distinguishable from the dot at the sizes that
+style targets; distinguishing the two states there needs a different mark
+vocabulary, tracked separately.
 
 `create_provenance_mark(state)` builds one unencoded glyph named
 `provenance.mark.<state>` per marked state, lazily and at most once per font,
 with `glyphPen` and straight line segments only (`curveTo()` takes cubic or
 quadratic control points depending on the source outline type, so Bezier
-segments would not be portable). Marks are drawn canonically over `0` to `em`
-and scaled per glyph onto the base advance width by
-`derive_provenance_glyph()`. They are clamped into the space between the
-baseline and `font_dim['ymin']`, with a margin of 12 % of that depth at each
-end, so the font's own descender never has to be lowered. If there is no usable
-room below the baseline, a warning is logged once and the unmarked variants are
-used instead.
+segments would not be portable). The `subtle` dot is drawn centred on `x = 0`
+and translated to `width/2` by `derive_provenance_glyph()`; the `explicit` bars
+are drawn canonically over `0` to `em` and scaled onto the base advance width.
+Both are clamped into the space between the baseline and `font_dim['ymin']`,
+with a margin of 12 % of that depth at each end, so the font's own descender
+never has to be lowered. If there is no usable room below the baseline, a
+warning is logged once and the unmarked variants are used instead.
 
 Glyph counts follow from this: `identical` adds 3 glyphs per eligible base
-character, and each marked style adds 3 per base plus the two
-`provenance.mark.ai` and `provenance.mark.unknown` glyphs.
+character, `subtle` adds 3 per base plus one `provenance.mark.ai` glyph, and
+`explicit` adds 3 per base plus `provenance.mark.ai` and
+`provenance.mark.unknown`.
 
 ### Glyph naming and encoding
 
