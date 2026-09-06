@@ -130,9 +130,13 @@ metadata.
 
 The option lives in the `Symbol Fonts` argument group and uses the same
 optional-value pattern as `--braille`. Given bare, it selects `identical`. It
-is not enabled by `--complete`, so it is always opt-in, and a build without
-`--provenance` is unchanged from upstream: the reference builds used in CI have
-no format 14 `cmap` subtable and no `NFProv` tag. For the Symbols Only font it
+is not enabled by `--complete`, so it is always opt-in. A build without
+`--provenance` adds no glyphs and no `NFProv` tag: the reference builds used in
+CI have no format 14 `cmap` subtable, and their family, PostScript name, and
+Unique ID are identical to upstream's. The only fields that differ from an
+upstream build are the Version name (ID 5) and the `PfEd` table, which carry
+the fork marker described under [Release workflow and
+naming](#release-workflow-and-naming). For the Symbols Only font it
 logs a warning and does nothing, because variants need base glyphs from the
 source font. Users on the fontconfig fallback route (`10-nerd-font-symbols.conf`)
 therefore get no provenance glyphs.
@@ -215,8 +219,14 @@ every consumer: `font.comment` and `font.fontlog` land in FontForge's private
 `PfEd` table and are invisible to other tools. For example:
 
 ```text
-Version 3.003;NFProv 1;Nerd Fonts 3.5.1
+Version 3.003;delano/nerd-fonts;NFProv 1;Nerd Fonts 3.5.1
 ```
+
+The `;delano/nerd-fonts` segment is the fork marker that `setup_version()`
+adds to every build from this repository, with or without `--provenance`, when
+`projectFork` is set (see [Release workflow and
+naming](#release-workflow-and-naming)). It too goes ahead of the Nerd Fonts
+segment.
 
 The position matters: `FontnameParser.rename_font()` derives the `UniqueID`
 from the last whitespace-separated token of the Version name, so inserting
@@ -292,15 +302,67 @@ font in a temporary directory and validates it.
 The mono build is there because width normalisation precedes variant
 generation.
 
-### Release workflow: open decision
+### Release workflow and naming
 
-Release builds do not enable provenance. `gotta-patch-em-all-font-patcher!.sh`
-forwards `NERDFONTS` to its `font-patcher` calls, so setting
-`NERDFONTS: "--provenance=subtle"` in the release workflow would turn it on for
-distributed fonts. That is deliberately not done yet: the project first has to
-decide whether publicly distributed provenance-aware fonts need a distinct
-family name, which affects `projectName` and `projectNameAbbreviation` in
-`font-patcher`. This decision is open.
+Release builds do not enable provenance, and that is a settled decision: the
+feature stays opt-in. `gotta-patch-em-all-font-patcher!.sh` forwards
+`NERDFONTS` to its `font-patcher` calls, so an operator who sets
+`NERDFONTS: "--provenance=subtle"` gets provenance-aware fonts from the release
+workflow. Those fonts form a separate `P+` family (below) and do not collide
+with installed Nerd Fonts. `projectName` and `projectNameAbbreviation` in
+`font-patcher` do not change.
+
+#### Family marker for provenance builds
+
+Every `--provenance` build, whichever style, appends `provenanceFamilySuffix`
+(`P+`) to the family. This is independent of `projectFork`, so upstream could
+adopt it as is. Existing installed Nerd Fonts are never clobbered.
+
+| Field                    | Plain build                    | Provenance build                 |
+| ------------------------ | ------------------------------ | -------------------------------- |
+| Family (ID 1)            | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P+`         |
+| Full name (ID 4)         | `Hack Nerd Font Mono Regular`  | `Hack Nerd Font Mono P+ Regular` |
+| PostScript name (ID 6)   | `HackNFM-Regular`              | `HackNFMP+-Regular`              |
+| Preferred Family (ID 16) | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P+`         |
+| Output file              | `HackNerdFontMono-Regular.ttf` | `HackNerdFontMonoP+-Regular.ttf` |
+
+For Regular, Bold, Italic, and Bold Italic, ID 16 is the same as ID 1. Other
+weights keep the usual split: ID 1 `JetBrainsMono Nerd Font Mono P+ ExtraBold`,
+ID 16 `JetBrainsMono Nerd Font Mono P+`. The other variants follow the same
+pattern: `HackNerdFontP+-Regular.ttf`, `JetBrainsMonoNerdFontPropoP+-Regular.ttf`.
+
+`P+` was chosen over `Prov` and `with Provenance` because Family (ID 1) is
+limited to 31 characters (the Windows GDI `LF_FACESIZE` limit, enforced by
+`FontnameParser.checklen()`). `JetBrainsMono Nerd Font Mono` is already 28
+characters, so `Prov` would give 33. With `P+`, `JetBrainsMono Nerd Font Mono
+P+` and `CaskaydiaCove Nerd Font Mono P+` land at exactly 31. Known
+limitation: the Propo variant of those 13-character families
+(`JetBrainsMono Nerd Font Propo P+`) is 32; `checklen()` logs an error and
+the font is still written. The long `Nerd Font Mono` form is kept on purpose
+rather than falling back to the short `NFM` form. `+` is legal in PostScript
+names: the OpenType spec allows ASCII 33 to 126 except `[](){}<>/%`.
+
+#### Fork marker
+
+Every build from this fork, with or without `--provenance`, carries a marker
+gated on the `projectFork = "delano/nerd-fonts"` constant in `font-patcher`.
+Setting it to the empty string reproduces upstream output byte for byte.
+
+- Version name (ID 5): `setup_version()` inserts `;delano/nerd-fonts`
+  immediately before the trailing `;Nerd Fonts 3.5.1` segment. A plain build
+  reads `Version 3.003;delano/nerd-fonts;Nerd Fonts 3.5.1`; a provenance build
+  reads `Version 3.003;delano/nerd-fonts;NFProv 1;Nerd Fonts 3.5.1`. The Nerd
+  Fonts segment stays last because the Unique ID (ID 3) is built from the last
+  whitespace-separated token of the Version name, so ID 3 is unchanged
+  (`Hack Nerd Font Mono Regular 3.5.1`).
+- `PfEd` table (`font.comment` and `font.fontlog`): gains the line
+  `* Built from: https://github.com/delano/nerd-fonts` after the Development
+  Website line.
+
+Family, PostScript name, and Unique ID of plain builds are identical to
+upstream. Description (ID 10) is deliberately not used because Font Book and
+Windows display it prominently. The base font's attribution fields (IDs 0, 7,
+8, 9, 10, 11, 12, 13, 14, and `OS/2` `achVendID`) are never touched.
 
 ## Validating a change
 
@@ -314,6 +376,9 @@ It writes patched fonts and one PNG per style to `temp/provenance-example/`,
 which is ignored by git. When more than one style is given and ImageMagick is
 installed, the PNGs are also stacked into `all-styles.png`. The manual steps below cover the same ground in more
 detail. Use a scratch output directory and do not commit generated fonts.
+Provenance builds are written as `HackNerdFontP+-Regular.ttf` next to the plain
+`HackNerdFont-Regular.ttf`, so both can share one output directory without
+overwriting each other.
 
 ```bash
 out=$(mktemp -d)
@@ -321,20 +386,20 @@ out=$(mktemp -d)
 fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
   --complete --quiet --no-progressbars --outputdir "$out"
 fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
-  --complete --provenance=subtle --debug 2 --outputdir "$out/prov"
+  --complete --provenance=subtle --debug 2 --outputdir "$out"
 
 python3 bin/scripts/test-provenance.py \
   --reference "$out/HackNerdFont-Regular.ttf" \
-  "$out/prov/HackNerdFont-Regular.ttf"
+  "$out/HackNerdFontP+-Regular.ttf"
 
 # Both inputs must shape to A.ai.
-hb-shape "$out/prov/HackNerdFont-Regular.ttf" -u "0041,E0101"
-hb-shape "$out/prov/HackNerdFont-Regular.ttf" -u "100041"
+hb-shape "$out/HackNerdFontP+-Regular.ttf" -u "0041,E0101"
+hb-shape "$out/HackNerdFontP+-Regular.ttf" -u "100041"
 
 # Ligature behaviour, on a font that has calt ligatures.
 fontforge --script ./font-patcher src/unpatched-fonts/FiraCode/FiraCode-Regular.ttf \
-  --complete --provenance=subtle --debug 2 --outputdir "$out/prov"
-hb-shape "$out/prov/FiraCodeNerdFont-Regular.ttf" --features=calt \
+  --complete --provenance=subtle --debug 2 --outputdir "$out"
+hb-shape "$out/FiraCodeNerdFontP+-Regular.ttf" --features=calt \
   -u "003D,E0101,003E,E0101"
 
 python3 bin/scripts/nfprov.py --selftest
@@ -403,6 +468,7 @@ an open question.
   license row for this feature, so that file gained only a one-line pointer to
   this directory.
 - `Dockerfile`: no new runtime dependency.
-- `fonts.json`, the release matrix, family names, and archive layout.
+- `fonts.json`, the release matrix, and archive layout. Plain builds also keep
+  their upstream family names; only `--provenance` builds get the `P+` marker.
 
 [wiki-conflicts]: https://github.com/ryanoasis/nerd-fonts/wiki/Codepoint-Conflicts

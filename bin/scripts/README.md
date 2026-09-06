@@ -35,7 +35,7 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `standardize-and-complete-readmes.sh`: Used by `gotta-patch-em-all-font-patcher!.sh`
 * `test-fonts.sh`: Print-to-debug all glyphs we patch in [4]
 * `test-powerlines.sh`: Print-to-debug powerline examples [4]
-* `test-provenance.py`: Validate the provenance tables of a patched font (needs `fontTools`) [9]
+* `test-provenance.py`: Validate the provenance tables and naming of a patched font (needs `fontTools`) [9]
 * `test-vertical-lines.sh`: Print-to-debug powerline examples [4]
 * `update-all-contributors-website.py`: Update the contributors page on `nerdfonts.com` (i.e. gh-pages) [7]
 * `update-gitignore.sh`: Correct gitignore file for not-released-in-repo fonts [8]
