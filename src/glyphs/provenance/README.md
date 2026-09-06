@@ -357,8 +357,9 @@ Measured with FontForge 20251009 and HarfBuzz.
   change nothing. There is no partial degradation. Kerning is likewise not
   inherited by marked or PUA text, for the same reason. A font-side fix is
   possible in principle (an early `ccmp` split of each variant back into the
-  base glyph plus a zero-advance marker glyph that the source lookups skip) but
-  is not implemented; see issue #3.
+  base glyph plus a zero-advance marker glyph that the source lookups skip).
+  It is a gated experiment tracked in issue #7; the diagnosis and the
+  alternatives ruled out by `CRITERIA.md` are recorded in issue #3.
 - **Fallback is asymmetric.** In a font without provenance glyphs, `base + VS`
   renders as the base glyph followed by a zero-advance selector, while a PUA
   code point renders `.notdef`. The variation-selector encoding is therefore
