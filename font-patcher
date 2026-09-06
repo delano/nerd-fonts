@@ -22,7 +22,6 @@ from enum import Enum
 import errno
 import json
 import logging
-import math
 import os
 import re
 import subprocess
@@ -578,15 +577,10 @@ class font_patcher:
         glyph.addReference(base_glyph.glyphname)
         if mark:
             # set_sourcefont_glyph_widths() already normalized this to
-            # font_dim['width'] for --mono, so the base width is always correct
-            width = base_glyph.width
-            if self.args.provenance == 'explicit':
-                # The canonical bar spans 0 .. em, scale it onto the advance width
-                sx = width / self.sourceFont.em
-                glyph.addReference(mark.glyphname, (sx, 0, 0, 1, 0, 0))
-            else:
-                # The canonical dot is centered on x = 0, move it under the cell
-                glyph.addReference(mark.glyphname, (1, 0, 0, 1, width / 2, 0))
+            # font_dim['width'] for --mono, so the base width is always correct.
+            # Every canonical mark spans 0 .. em, so scale it onto the advance width.
+            sx = base_glyph.width / self.sourceFont.em
+            glyph.addReference(mark.glyphname, (sx, 0, 0, 1, 0, 0))
         glyph.width = base_glyph.width
         glyph.vwidth = base_glyph.vwidth
         glyph.glyphclass = base_glyph.glyphclass if base_glyph.glyphclass != 'automatic' else 'baseglyph'
@@ -602,11 +596,6 @@ class font_patcher:
         self.provenance_marks[state] = None
         if self.args.provenance == 'identical' or state == 'human':
             return None
-        # The dot vocabulary of 'subtle' has no room for a second distinguishable
-        # shape below the baseline, so only 'explicit' marks the unknown state for
-        # now; see the presentation-styles table in src/glyphs/provenance/README.md.
-        if state == 'unknown' and self.args.provenance != 'explicit':
-            return None
 
         em = self.sourceFont.em
         # Everything lives between the baseline and the bottom of the cell, so
@@ -620,36 +609,27 @@ class font_patcher:
         margin = depth * 0.12
         usable = depth - 2 * margin
 
+        # Both marked styles draw the same rule below the baseline and differ only
+        # in weight: 'explicit' is a visible underline, 'subtle' a hairline that
+        # still registers at terminal sizes (an em/24 dot did not; see issue #11).
+        thickness = min(em / 48 if self.args.provenance == 'explicit' else em / 96, usable)
+        y0 = self.font_dim['ymin'] + margin
+        y1 = y0 + thickness
+        # Canonical spans over 0 .. em, scaled per glyph in derive_provenance_glyph().
+        # 'ai' fills the cell, so a marked run reads as a continuous rule; 'unknown'
+        # fills its middle half, so a run reads as a dashed one.
+        x0, x1 = (0, em) if state == 'ai' else (em / 4, em * 3 / 4)
+
         mark = self.sourceFont.createChar(-1, 'provenance.mark.' + state)
         pen = mark.glyphPen()
-        if self.args.provenance == 'subtle':
-            # About half the width of a typical period (Hack's is em/6.3), so the
-            # dot survives at terminal sizes without reading as punctuation.
-            radius = min(em / 24, usable / 2)
-            cy = self.font_dim['ymin'] + margin + radius
-            # An octagon, drawn with straight lines only. glyphPen.curveTo() takes
-            # cubic or quadratic control points depending on the outline type of
-            # the source font, so Bezier segments would not be portable here.
-            pen.moveTo((0, cy + radius))
-            for corner in range(1, 8):
-                angle = corner * math.pi / 4
-                pen.lineTo((radius * math.sin(angle), cy + radius * math.cos(angle)))
-            pen.closePath()
-        else:
-            thickness = min(em / 48, usable)
-            y0 = self.font_dim['ymin'] + margin
-            y1 = y0 + thickness
-            # Canonical bars spanning 0 .. em, scaled per glyph in derive_provenance_glyph().
-            # 'ai' is one solid bar, so a marked run reads as a continuous underline.
-            # 'unknown' is the middle half of the cell only, so a run reads as a dashed
-            # underline: same weight and position, unmistakably a different line.
-            spans = [(0, em)] if state == 'ai' else [(em / 4, em * 3 / 4)]
-            for x0, x1 in spans:
-                pen.moveTo((x0, y1))
-                pen.lineTo((x1, y1))
-                pen.lineTo((x1, y0))
-                pen.lineTo((x0, y0))
-                pen.closePath()
+        # Straight line segments only: glyphPen.curveTo() takes cubic or quadratic
+        # control points depending on the outline type of the source font, so
+        # Bezier segments would not be portable here.
+        pen.moveTo((x0, y1))
+        pen.lineTo((x1, y1))
+        pen.lineTo((x1, y0))
+        pen.lineTo((x0, y0))
+        pen.closePath()
         pen = None
         mark.width = em
         mark.glyphclass = 'baseglyph'
