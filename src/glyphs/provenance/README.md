@@ -129,7 +129,8 @@ metadata.
 ```
 
 The option lives in the `Symbol Fonts` argument group and uses the same
-optional-value pattern as `--braille`. Given bare, it selects `identical`. It
+optional-value pattern as `--braille`. Given bare, it selects `explicit`, the
+style whose marks stay legible at terminal sizes. It
 is not enabled by `--complete`, so it is always opt-in. A build without
 `--provenance` adds no glyphs and no `NFProv` tag: the reference builds used in
 CI have no format 14 `cmap` subtable, and their family, PostScript name, and
@@ -156,29 +157,54 @@ not rebuilt and the Version name is not tagged.
 
 ### Presentation styles
 
-| Style       | `.human` and `.unknown` | `.ai`                                            |
-| ----------- | ----------------------- | ------------------------------------------------ |
-| `identical` | Reference to base glyph | Reference to base glyph                          |
-| `subtle`    | Reference to base glyph | Base glyph plus a small dot below the baseline   |
-| `explicit`  | Reference to base glyph | Base glyph plus a bar spanning the advance width |
+| Style       | `.human`                | `.unknown`                                  | `.ai`                                       |
+| ----------- | ----------------------- | ------------------------------------------- | ------------------------------------------- |
+| `identical` | Reference to base glyph | Reference to base glyph                     | Reference to base glyph                     |
+| `subtle`    | Reference to base glyph | Reference to base glyph                     | Base glyph plus a dot below the baseline    |
+| `explicit`  | Reference to base glyph | Base glyph plus a sawtooth under the cell   | Base glyph plus a bar under the cell        |
 
-`create_provenance_mark()` builds a single unencoded glyph named
-`provenance.mark`, lazily and at most once per font, with `glyphPen` and
-straight line segments only (`curveTo()` takes cubic or quadratic control
-points depending on the source outline type, so Bezier segments would not be
-portable). The `subtle` dot is an octagon of radius `em/24` (a diameter of
-about half a typical period, chosen so it survives at terminal sizes), which
-`derive_provenance_glyph()` translates to `width/2` so it sits centred under
-the cell below the baseline. The `explicit` bar is `em/48` thick, drawn
-canonically from `0` to `em` and scaled per glyph onto the base advance width.
+`.human` is never marked, in any style. Unmarked text is assumed human, so a
+mark there would make the two states differ visually, which M1 forbids.
+
+`subtle` marks with an octagonal dot of radius `em/12`, centred under the cell.
+That is about the size of a typical period (Hack's is `em/6.3` wide): it reads
+as punctuation up close, which is the cost of being visible at terminal sizes at
+all. The earlier `em/24` dot did not register at 14px (issue #11). A hairline
+rule was prototyped as an alternative and rejected: it differed from `explicit`
+only in weight, and at terminal sizes both land in the same pixel row, so the
+distinction survived only as a grey level.
+
+`explicit` marks with a stroke `em/48` thick. State is carried by the shape of
+that stroke, not by its weight or position: `ai` is a straight bar over the
+whole cell, so a marked run reads as a continuous underline, and `unknown` is a
+single triangle of amplitude `em/10` with both ends in the valley, so
+consecutive cells join and a run reads as one continuous sawtooth. The sawtooth
+outline is the spine offset vertically, which keeps it a straight-line polygon
+and thins the apparent weight slightly on the diagonals, as a drawn stroke
+would. A dashed rule was tried first and rejected: at terminal sizes it differed
+from the `ai` bar only in how much of each cell was inked.
+
+`subtle` leaves `unknown` unmarked. A second shape small enough to belong to the
+dot vocabulary is not reliably distinguishable from the dot at the sizes that
+style targets; distinguishing the two states there needs a different mark
+vocabulary, tracked separately.
+
+`create_provenance_mark(state)` builds one unencoded glyph named
+`provenance.mark.<state>` per marked state, lazily and at most once per font,
+with `glyphPen` and straight line segments only (`curveTo()` takes cubic or
+quadratic control points depending on the source outline type, so Bezier
+segments would not be portable). The `subtle` dot is drawn centred on `x = 0`
+and translated to `width/2` by `derive_provenance_glyph()`; the `explicit` bars
+are drawn canonically over `0` to `em` and scaled onto the base advance width.
 Both are clamped into the space between the baseline and `font_dim['ymin']`,
 with a margin of 12 % of that depth at each end, so the font's own descender
 never has to be lowered. If there is no usable room below the baseline, a
-warning is logged and the unmarked variants are used instead.
+warning is logged once and the unmarked variants are used instead.
 
 Glyph counts follow from this: `identical` adds 3 glyphs per eligible base
-character, and the marked styles add 3 per base plus the one `provenance.mark`
-glyph.
+character, `subtle` adds 3 per base plus one `provenance.mark.ai` glyph, and
+`explicit` adds 3 per base plus `provenance.mark.ai` and
+`provenance.mark.unknown`.
 
 ### Glyph naming and encoding
 

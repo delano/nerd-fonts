@@ -15,7 +15,7 @@
 # Usage:
 #   generate-provenance-example.sh [-f SOURCE_FONT] [-o OUTPUT_DIR] [-p PATCHER_ARGS] [STYLE ...]
 #
-#   STYLE         identical, subtle, or explicit (default: subtle). Several may be given.
+#   STYLE         identical, subtle, or explicit (default: explicit). Several may be given.
 #   SOURCE_FONT   defaults to src/unpatched-fonts/Hack/Hack-Regular.ttf
 #   OUTPUT_DIR    defaults to temp/provenance-example (ignored by git)
 #   PATCHER_ARGS  extra font-patcher options applied to every build, e.g. -p "--mono" or -p "--complete"
@@ -50,7 +50,7 @@ while getopts "f:o:p:h" opt; do
 done
 shift $((OPTIND - 1))
 styles=("$@")
-[ ${#styles[@]} -eq 0 ] && styles=(subtle)
+[ ${#styles[@]} -eq 0 ] && styles=(explicit)
 
 for tool in fontforge python3 hb-view hb-shape; do
   if ! command -v "$tool" >/dev/null 2>&1; then
