@@ -5,9 +5,20 @@ Usage:
     compare-font-derivation.py ORIGINAL STAGED [STAGED ...]
 
 ORIGINAL is the unpatched upstream face (TTF/OTF). Each STAGED file is a
-patched and/or subset build (TTF/OTF/WOFF/WOFF2). Exits 1 if any staged font
-is a Modified Version, 0 if every one is byte-equivalent in the ways that
-matter to the Reserved Font Name question.
+patched and/or subset build (TTF/OTF/WOFF/WOFF2).
+
+Exit codes:
+    0  every staged font is clean or a format-only conversion (OFL-safe)
+    1  at least one staged font is a Modified Version by the signals below
+    2  a staged font could not be read, or its glyph names no longer line up
+       with the upstream's (post table dropped) so the verdict is inconclusive
+
+Scope: this compares the glyph *set* (added/dropped by name), the container
+format, and the cmap subtables present. It does NOT diff the outlines,
+metrics, kerning, or hinting of glyphs the two fonts share, so a "no changes
+detected" verdict means "none of the checked signals fired," not "byte
+equivalent." That is enough for the provenance patcher, which only adds
+variant glyphs and leaves the base outlines untouched.
 
 Requires: fonttools, plus brotli to read WOFF2.
 """
@@ -34,7 +45,15 @@ NAME_IDS = {
 
 
 def is_provenance_variant(glyph_name: str) -> bool:
-    return glyph_name.rsplit(".", 1)[-1] in PROVENANCE_SUFFIXES
+    # Require the dotted-suffix form (A.ai), so a glyph merely *named*
+    # "ai"/"human"/"unknown" is not misread as a provenance variant.
+    return "." in glyph_name and glyph_name.rsplit(".", 1)[-1] in PROVENANCE_SUFFIXES
+
+
+def codepoints(font: TTFont) -> set[int]:
+    """Unicode codepoints the font's best cmap maps, or empty if it has none."""
+    best = font.getBestCmap()
+    return set(best) if best else set()
 
 
 def cmap_formats(font: TTFont) -> set[int]:
@@ -71,8 +90,9 @@ def composite_breakdown(font: TTFont, name: str) -> list[str] | None:
     return [component.glyphName for component in glyph.components]
 
 
-def compare(original_path: str, staged_path: str) -> bool:
-    """Print a report. Return True if the staged font is a Modified Version."""
+def compare(original_path: str, staged_path: str) -> str:
+    """Print a report. Return a status: "modified", "inconclusive",
+    "format-only", or "clean"."""
     original = TTFont(original_path, lazy=True)
     staged = TTFont(staged_path, lazy=True)
 
@@ -81,6 +101,19 @@ def compare(original_path: str, staged_path: str) -> bool:
 
     added = sorted(staged_glyphs - original_glyphs)
     dropped = sorted(original_glyphs - staged_glyphs)
+
+    # The added/dropped sets above are matched by glyph NAME. A build that drops
+    # the post table loses the real names, and fontTools rebuilds them from cmap
+    # (uniXXXX etc.), so a glyph can show as "dropped" under one name and "added"
+    # under another while its outline never moved. Cross-check against actual
+    # cmap codepoint coverage: if names churn heavily but coverage barely moves,
+    # the name diff is an artifact and any verdict from it is meaningless.
+    original_cps = codepoints(original)
+    staged_cps = codepoints(staged)
+    coverage_lost = original_cps - staged_cps
+    names_unreliable = len(dropped) > 0.05 * max(len(original_glyphs), 1) and (
+        len(coverage_lost) < 0.2 * len(dropped)
+    )
     variants = [g for g in added if is_provenance_variant(g)]
     other_added = [g for g in added if not is_provenance_variant(g)]
 
@@ -95,6 +128,13 @@ def compare(original_path: str, staged_path: str) -> bool:
     print("original: %s" % original_path)
     print("staged:   %s" % staged_path)
     print("-" * 72)
+    if names_unreliable:
+        print(
+            "WARNING: glyph names churn but cmap coverage barely moves - a build"
+        )
+        print(
+            "         dropped the post table, so the glyph-name diff is unreliable."
+        )
     print(
         "glyph count            %d -> %d"
         % (len(original_glyphs), len(staged_glyphs))
@@ -160,31 +200,57 @@ def compare(original_path: str, staged_path: str) -> bool:
         if value:
             print("  staged name ID %-2d (%-18s) %s" % (name_id, label, value))
 
-    modified = bool(added or dropped or format_changed or new_cmap)
+    # A container swap (TTF -> WOFF/WOFF2) repackages the same font data; OFL
+    # treats that as a format conversion, not a modification of the font, so it
+    # does not by itself trip the Reserved Font Name clause. Only changes to the
+    # font data proper do.
+    data_changed = bool(added or dropped or new_cmap)
     print("-" * 72)
-    if modified:
+    if names_unreliable:
+        print(
+            "VERDICT: inconclusive - glyph names no longer match upstream, cannot"
+        )
+        print(
+            "         judge the glyph set. Rebuild retaining the post table so the"
+        )
+        print("         names survive, then re-run.")
+        return "inconclusive"
+    if data_changed or format_changed:
         reasons = []
         if added:
             reasons.append("%d glyphs added" % len(added))
         if dropped:
             reasons.append("%d glyphs removed" % len(dropped))
-        if format_changed:
-            reasons.append("format changed")
         if new_cmap:
             reasons.append("cmap subtable added")
+        if format_changed:
+            reasons.append(
+                "format %s -> %s" % (original_format, staged_format)
+            )
+        if data_changed:
+            print(
+                "VERDICT: Modified Version under OFL 1.1 (%s)."
+                % "; ".join(reasons)
+            )
+            if reserved:
+                print(
+                    "         Upstream reserves its name, so clause 3 requires a family"
+                )
+                print(
+                    "         name that does not contain it, or written permission."
+                )
+            return "modified"
         print(
-            "VERDICT: Modified Version under OFL 1.1 (%s)." % "; ".join(reasons)
+            "VERDICT: format conversion only (%s -> %s), same font data."
+            % (original_format, staged_format)
         )
-        if reserved:
-            print(
-                "         Upstream reserves its name, so clause 3 requires a family"
-            )
-            print(
-                "         name that does not contain it, or written permission."
-            )
-    else:
-        print("VERDICT: no glyph, format, or cmap changes detected.")
-    return modified
+        print(
+            "         Not a Modified Version; the Reserved Font Name clause is"
+        )
+        print("         not triggered by repackaging alone.")
+        return "format-only"
+    print("VERDICT: no glyph, format, or cmap changes detected.")
+    return "clean"
 
 
 def main(argv=None):
@@ -197,14 +263,19 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    modified = False
+    statuses: list[str] = []
+    had_error = False
     for staged in args.staged:
         try:
-            modified |= compare(args.original, staged)
+            statuses.append(compare(args.original, staged))
         except Exception as error:  # noqa: BLE001 - report and continue to the next file
             print("error comparing %s: %s" % (staged, error), file=sys.stderr)
-            return 2
-    return 1 if modified else 0
+            had_error = True
+    if had_error or "inconclusive" in statuses:
+        return 2
+    if "modified" in statuses:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
