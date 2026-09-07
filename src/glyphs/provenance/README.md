@@ -475,15 +475,18 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | Chrome, Vivaldi                   | Correct                                                 |
 | Firefox                           | Correct                                                 |
 | Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
-| Terminal emulators, editors       | Not yet tested                                          |
+| Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
+| Terminal emulators                | Not yet tested                                          |
 
-Safari and Orion both shape through WebKit and CoreText, and neither honoured
-the format 14 subtable for these private selectors. The text still renders
-cleanly (no boxes, no extra spacing), so the failure is silent. Other CoreText
-hosts such as Terminal.app and iTerm2 are expected to behave the same way; that
-is the next thing to verify. Whether CoreText can be made to honour the
-selectors, for example by registering the sequences differently in `cmap`, is
-an open question.
+Safari, Orion and Zed all shape through CoreText, and none honoured
+the format 14 subtable for these private selectors. In Safari and Orion the
+text still renders cleanly (no boxes, no extra spacing), so the failure is
+silent. Other CoreText hosts such as Terminal.app and iTerm2 are expected to
+behave the same way; that is the next thing to verify. Zed additionally shows
+extra spacing in some conditions; that is a Zed display artifact, not CoreText
+fallback, and is documented separately in `zed-about.md`. Whether CoreText can
+be made to honour the selectors, for example by registering the sequences
+differently in `cmap`, is an open question.
 
 ## Files intentionally unchanged
 
