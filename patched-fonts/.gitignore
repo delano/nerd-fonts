@@ -1,0 +1,12 @@
+# Sept 07, 2026: Ignore the built Nerd Fonts lest we accidentally commit the
+# changes. We do this locally only b/c we wouldn't want to suggest this upstream
+# where it's appropriate. By convention, the built Nerd Fonts from this work are
+# meant to be identical, save for the metadata that indicates that came from
+# this fork so that they can still be distinguished from the official ones.
+*
+!zilla
+!maryheather
+!zilla/*
+!maryheather/*
+!.gitignore
+.DS_Store
