@@ -1,0 +1,6 @@
+
+􀁔􀁨􀁥 􀁦􀁯􀁲􀁫 􀁡􀁤􀁤􀁳 􀁠􀁦􀁯􀁮􀁴􀀭􀁰􀁡􀁴􀁣􀁨􀁥􀁲 􀀭􀀭􀁰􀁲􀁯􀁶􀁥􀁮􀁡􀁮􀁣􀁥􀁠􀀮 􀁗􀁨􀁥􀁮 􀁥􀁮􀁡􀁢􀁬􀁥􀁤􀀬 􀁴􀁨􀁥 􀁰􀁡􀁴􀁣􀁨􀁥􀁲 􀁣􀁲􀁥􀁡􀁴􀁥􀁳 􀁡􀁬􀁴􀁥􀁲􀁮􀁡􀁴􀁥 􀁶􀁥􀁲􀁳􀁩􀁯􀁮􀁳 􀁯􀁦 the source-font glyphs so that text can carry a marker saying it is human or AI-generated􀀮 􀁔􀁨􀁥 􀁭􀁡􀁲􀁫􀁥􀁲 􀁩􀁳 􀁳􀁴􀁯􀁲􀁥􀁤 􀁩􀁮 􀁴􀁨􀁥 􀁴􀁥􀁸􀁴 􀁡􀁳 􀁣􀁯􀁤􀁥 􀁰􀁯􀁩􀁮􀁴􀁳. T􀁨􀁥 􀁦􀁯􀁮􀁴 􀁯􀁮􀁬􀁹 􀁲􀁥􀁮􀁤􀁥􀁲􀁳 􀁩􀁴; i􀁴 􀁤􀁯􀁥􀁳 􀁮􀁯􀁴 􀁴􀁲􀁹 􀁴􀁯 􀁤􀁥􀁴􀁥􀁣􀁴 􀁡􀁵􀁴􀁨􀁯􀁲􀁳􀁨􀁩􀁰􀀮
+
+􀁔􀁨􀁩􀁳 􀁭􀁯􀁤􀁥 􀁩􀁳 􀁮􀁯􀁴 􀁩􀁮􀁣􀁬􀁵􀁤􀁥􀁤 􀁩􀁮 􀁠􀀭􀀭􀁣􀁯􀁭􀁰􀁬􀁥􀁴􀁥􀁠 􀁯􀁲 􀁲􀁥􀁬􀁥􀁡􀁳􀁥 􀁢􀁵􀁩􀁬􀁤􀁳􀀮 􀁆􀁯􀁮􀁴􀁳 􀁭􀁡􀁤􀁥 􀁷􀁩􀁴􀁨 􀁩􀁴 􀁵􀁳􀁥 􀁡 􀁳􀁥􀁰􀁡􀁲􀁡􀁴􀁥 􀁠􀁐􀀫􀁠 􀁦􀁡􀁭􀁩􀁬􀁹 􀁳􀁵􀁦􀁦􀁩􀁸􀀬 􀁳􀁯 􀁴􀁨􀁥􀁹 􀁣􀁡􀁮 􀁢􀁥 􀁩􀁮􀁳􀁴􀁡􀁬􀁬􀁥􀁤 􀁡􀁬􀁯􀁮􀁧􀁳􀁩􀁤􀁥 􀁲􀁥􀁧􀁵􀁬􀁡􀁲 􀁎􀁥􀁲􀁤 􀁆􀁯􀁮􀁴􀁳 without disturbing them􀀮 The only changes to the existing patched fonts is the addition of the fork name to the metadata so that they can be distinguished from the proper official 􀁢􀁵􀁩􀁬􀁤􀁳􀀮
+
+It's all just a proof of concept􀀮 􀁍􀁡􀁲􀁫􀁥􀁤 􀁴􀁥􀁸􀁴 􀁣􀁵􀁲􀁲􀁥􀁮􀁴􀁬􀁹 􀁬􀁯􀁳􀁥􀁳 􀁳􀁯􀁵􀁲􀁣􀁥􀀭􀁦􀁯􀁮􀁴 􀁬􀁩􀁧􀁡􀁴􀁵􀁲􀁥􀁳 􀁡􀁮􀁤 􀁫􀁥􀁲􀁮􀁩􀁮􀁧 􀁡􀁮􀁤 􀁳􀁵􀁰􀁰􀁯􀁲􀁴 􀁶􀁡􀁲􀁩􀁥􀁳 􀁢􀁹 􀁴􀁥􀁸􀁴 􀁲􀁥􀁮􀁤􀁥􀁲􀁥􀁲􀀮 􀁏􀁲􀁤􀁩􀁮􀁡􀁲􀁹􀀬 􀁵􀁮􀁭􀁡􀁲􀁫􀁥􀁤 􀁴􀁥􀁸􀁴 􀁩􀁳 􀁵􀁮􀁡􀁦􀁦􀁥􀁣􀁴􀁥􀁤􀀮
