@@ -61,20 +61,20 @@ Run from the Nerd Fonts repository root. `--variable-width-glyphs` selects
 proportional mode. Do not use `--mono`.
 
 ```sh
-mkdir -p temp/zilla/patched
+mkdir -p patched-fonts/zilla/patched
 
 # Build plain references first when a full metric comparison is required.
-for face in temp/zilla/*.ttf; do
+for face in patched-fonts/zilla/*.ttf; do
   fontforge --script ./font-patcher "$face" \
     --complete --variable-width-glyphs --quiet --no-progressbars \
-    --outputdir temp/zilla/patched
+    --outputdir patched-fonts/zilla/patched
  done
 
 # Build explicit-provenance faces.
-for face in temp/zilla/*.ttf; do
+for face in patched-fonts/zilla/*.ttf; do
   fontforge --script ./font-patcher "$face" \
     --complete --variable-width-glyphs --provenance=explicit --quiet \
-    --no-progressbars --outputdir temp/zilla/patched
+    --no-progressbars --outputdir patched-fonts/zilla/patched
  done
 ```
 
@@ -99,11 +99,11 @@ Validate a patched face, then confirm both AI encodings shape to `A.ai`:
 
 ```sh
 python3 bin/scripts/test-provenance.py \
-  temp/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf
+  patched-fonts/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf
 
-hb-shape temp/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf \
+hb-shape patched-fonts/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf \
   -u 0041,E0101
-hb-shape temp/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf \
+hb-shape patched-fonts/zilla/patched/ZillaSlabNerdFontPropoP+-Regular.ttf \
   -u 100041
 ```
 
@@ -114,12 +114,12 @@ vertical metrics and unchanged name records.
 Convert every provenance TTF and stage only WOFF2 assets for the static site:
 
 ```sh
-for font in temp/zilla/patched/*P+*.ttf; do
+for font in patched-fonts/zilla/patched/*P+*.ttf; do
   woff2_compress "$font"
  done
 
-mkdir -p temp/zilla/webfonts
-cp temp/zilla/patched/*P+*.woff2 temp/zilla/webfonts/
+mkdir -p patched-fonts/zilla/webfonts
+cp patched-fonts/zilla/patched/*P+*.woff2 patched-fonts/zilla/webfonts/
 ```
 
 `woff2_compress` writes the compressed file beside the input TTF. The staged
