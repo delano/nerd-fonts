@@ -6,7 +6,7 @@
 *
 !zilla
 !maryheather
-!zilla/*
-!maryheather/*
+!zilla/**
+!maryheather/**
 !.gitignore
 .DS_Store
