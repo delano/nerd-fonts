@@ -1,0 +1,6 @@
+
+The fork adds `font-patcher --provenance`. When enabled, the patcher creates alternate versions of ordinary source-font glyphs so text can carry a marker indicating human, AI-generated, or unknown origin. The marker is stored in the text as code points; the font only renders it. It does not try to detect authorship.
+
+This mode is not included in `--complete` or release builds. Fonts made with it use a separate `P+` family suffix, so they can be installed alongside regular Nerd Fonts without replacing them. Regular builds retain their usual family names; in this fork they have only a fork identifier in font metadata so they can be distinguished from official builds.
+
+The feature is still a prototype. Marked text currently loses source-font ligatures and kerning, and support varies by text renderer. Ordinary, unmarked text is unaffected.
