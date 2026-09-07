@@ -87,7 +87,7 @@ Use only these static TTF faces from `Merriweather-1.582/fonts/ttf/`:
 | `Merriweather-BoldItalic.ttf` | `05cf2c9ad0c4e3205e498a6ec4146fc98ea169b9a2605211e7877f2d8bc07661` | 700 | `italic` |
 
 The input filenames keep the upstream name; only the generated font is
-renamed. Place the files in `temp/merriweather/`. Do not use the variable beta
+renamed. Place the files in `patched-fonts/maryheather/`. Do not use the variable beta
 font or the Light and Black faces for this four-face webfont set.
 
 ## Patch
@@ -96,20 +96,20 @@ Run from the repository root. `--variable-width-glyphs` is the proportional
 mode. Do not add `--mono`.
 
 ```sh
-mkdir -p temp/merriweather/patched
+mkdir -p patched-fonts/maryheather/patched
 
 for face in Regular Italic Bold BoldItalic; do
   # Plain reference for validation
   fontforge --script ./font-patcher \
-    temp/merriweather/Merriweather-$face.ttf \
+    patched-fonts/maryheather/Merriweather-$face.ttf \
     --complete --variable-width-glyphs --quiet --no-progressbars \
-    --outputdir temp/merriweather/patched
+    --outputdir patched-fonts/maryheather/patched
 
   # Explicit provenance face
   fontforge --script ./font-patcher \
-    temp/merriweather/Merriweather-$face.ttf \
+    patched-fonts/maryheather/Merriweather-$face.ttf \
     --complete --variable-width-glyphs --provenance=explicit --quiet \
-    --no-progressbars --outputdir temp/merriweather/patched
+    --no-progressbars --outputdir patched-fonts/maryheather/patched
 done
 ```
 
@@ -151,13 +151,13 @@ encodings shape to `A.ai`:
 ```sh
 for face in Regular Italic Bold BoldItalic; do
   .venv/bin/python bin/scripts/test-provenance.py \
-    --reference temp/merriweather/patched/MaryheatherNerdFontPropo-$face.ttf \
-    temp/merriweather/patched/MaryheatherNerdFontPropoP+-$face.ttf
+    --reference patched-fonts/maryheather/patched/MaryheatherNerdFontPropo-$face.ttf \
+    patched-fonts/maryheather/patched/MaryheatherNerdFontPropoP+-$face.ttf
 done
 
-hb-shape temp/merriweather/patched/MaryheatherNerdFontPropoP+-Regular.ttf \
+hb-shape patched-fonts/maryheather/patched/MaryheatherNerdFontPropoP+-Regular.ttf \
   -u 0041,E0101
-hb-shape temp/merriweather/patched/MaryheatherNerdFontPropoP+-Regular.ttf \
+hb-shape patched-fonts/maryheather/patched/MaryheatherNerdFontPropoP+-Regular.ttf \
   -u 100041
 ```
 
@@ -169,7 +169,7 @@ Confirm the rename landed before staging anything:
 ```sh
 .venv/bin/python - <<'PY'
 from fontTools.ttLib import TTFont
-f = TTFont('temp/merriweather/patched/MaryheatherNerdFontPropoP+-Regular.ttf')
+f = TTFont('patched-fonts/maryheather/patched/MaryheatherNerdFontPropoP+-Regular.ttf')
 for r in f['name'].names:
     if r.platformID == 3 and r.nameID in (1, 3, 4, 6):
         assert 'Merriweather' not in r.toUnicode(), (r.nameID, r.toUnicode())
@@ -180,12 +180,12 @@ PY
 Convert and stage:
 
 ```sh
-for font in temp/merriweather/patched/*P+*.ttf; do
+for font in patched-fonts/maryheather/patched/*P+*.ttf; do
   woff2_compress "$font"
 done
 
-mkdir -p temp/merriweather/webfonts
-cp temp/merriweather/patched/*P+*.woff2 temp/merriweather/webfonts/
+mkdir -p patched-fonts/maryheather/webfonts
+cp patched-fonts/maryheather/patched/*P+*.woff2 patched-fonts/maryheather/webfonts/
 ```
 
 `woff2_compress` writes the compressed file beside the input TTF. Repeat the
