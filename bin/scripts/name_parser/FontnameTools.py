@@ -201,6 +201,7 @@ class FontnameTools:
         ( 'IBM[- ]?plex',               r'Blex' ), # We do not keep the case here
         ( '(i)ntel( ?)(o)ne',           r'\1ntone' ),
         ( '(l)iberation',               r'\1iteration' ),
+        ( '(m)erriweather',             r'\1aryheather' ), # Merriweather is a Reserved Font Name
         ( '(m)onaspace',                r'\1onaspice' ),
         ( '(m)( ?)plus',                r'\1+'), # Added this, because they use a plus symbol :->
         ( '(s)hare',                    r'\1hure' ),
