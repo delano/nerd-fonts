@@ -127,14 +127,14 @@ Output checksums for the build recorded here:
 
 | File | SHA-256 |
 | --- | --- |
-| `MaryheatherNerdFontPropoP+-Regular.ttf` | `04c3b7c63f46a4714b427d2fa9955743ed6b9a5e0bbb2513c4e39fe523f61a25` |
-| `MaryheatherNerdFontPropoP+-Italic.ttf` | `265c292e5d0e88f5f92013cf270a4523cd3992940984f64338c3afd779d75ac9` |
-| `MaryheatherNerdFontPropoP+-Bold.ttf` | `1d42072670cd8ff3d41c762362b35e6e16562f25cee78b71c79be5605c855e7c` |
-| `MaryheatherNerdFontPropoP+-BoldItalic.ttf` | `aedfb7c971356e01f8b31582f3ff6bb9b5c8292c6cfa750190173d57770bb123` |
-| `MaryheatherNerdFontPropoP+-Regular.woff2` | `301dd0331c4b29344e8763330213489117bf2f77e2e2b68166993f7226349936` |
-| `MaryheatherNerdFontPropoP+-Italic.woff2` | `302e697a80f765f762c73c9f196b1db3554a2d45738c1cc9a13f063a323b14bd` |
-| `MaryheatherNerdFontPropoP+-Bold.woff2` | `f675396bff765bde61cb0a69332adafe80cda3c8a90d8cf08f397e517f20a64b` |
-| `MaryheatherNerdFontPropoP+-BoldItalic.woff2` | `57868b41d9e71a5cf6b12bb7a115e5fa929f8e24743cf9a73e63c70f3b43250d` |
+| `MaryheatherNerdFontPropoP+-Regular.ttf` | `1547eb215367a3140a0dcfb16a38a8a1bbeb7ad083f0029e40a3ca23c49b4355` |
+| `MaryheatherNerdFontPropoP+-Italic.ttf` | `05a33c0f17c7b341303b9f4ac5a54e5c7ee1804fffce48a683a3fc1782d9af80` |
+| `MaryheatherNerdFontPropoP+-Bold.ttf` | `8a245356bb9725135e20a94b2593a36dd1845bdd7bb87414b42947abdb134c31` |
+| `MaryheatherNerdFontPropoP+-BoldItalic.ttf` | `3954a119f2b69f0e5fbab49e2970d5428f75e8767954d09effa3841829193876` |
+| `MaryheatherNerdFontPropoP+-Regular.woff2` | `5ccefe02f649091b355ae173dc8da5f3fdf28d559f63d4d942df28504c07fd45` |
+| `MaryheatherNerdFontPropoP+-Italic.woff2` | `e87d61f986b7775cf273aed9536fb62a162d731cdd91bd1f6f9785e56122cb62` |
+| `MaryheatherNerdFontPropoP+-Bold.woff2` | `8f6af9673bfaa3a051d2a3814f9585b60a5d864f425617a46700b66eee2c2269` |
+| `MaryheatherNerdFontPropoP+-BoldItalic.woff2` | `1a7b427502c87ba8380125f32934558dcb37d2ddebe7de0fd142ecf047cff91e` |
 
 ## Validate and convert
 
