@@ -330,13 +330,21 @@ generation.
 
 ### Release workflow and naming
 
-Release builds do not enable provenance, and that is a settled decision: the
-feature stays opt-in. `gotta-patch-em-all-font-patcher!.sh` forwards
-`NERDFONTS` to its `font-patcher` calls, so an operator who sets
-`NERDFONTS: "--provenance=subtle"` gets provenance-aware fonts from the release
-workflow. Those fonts form a separate `P+` family (below) and do not collide
-with installed Nerd Fonts. `projectName` and `projectNameAbbreviation` in
-`font-patcher` do not change.
+Release builds produce both families. `gotta-patch-em-all-font-patcher!.sh`
+patches every source font twice per variant: once as the plain Nerd Font and
+once with `--provenance`, so each family directory under `patched-fonts/`
+holds the plain files and the `P+` files side by side, and the per-family
+archives contain both. Only the plain files are committed back to the
+repository: `bin/scripts/update-gitignore.sh` adds a `patched-fonts/**/*P+-*`
+rule to `.gitignore`, so the `P+` family is distributed through the release
+archives alone and does not grow the repository history.
+The style comes from the `NERDFONTS_PROVENANCE`
+environment variable (`identical`, `subtle`, or `explicit`; default `subtle`);
+`none` skips the `P+` builds. `NERDFONTS` still adds options to every call.
+Provenance stays opt-in for users, not for the build: the `P+` family is a
+separate install (below) and never collides with plain Nerd Fonts, which is
+the decision recorded in issue #2. `projectName` and
+`projectNameAbbreviation` in `font-patcher` do not change.
 
 #### Family marker for provenance builds
 
@@ -475,18 +483,41 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | Chrome, Vivaldi                   | Correct                                                 |
 | Firefox                           | Correct                                                 |
 | Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
+| CoreText (`CTLineCreateWithAttributedString`) | Selector encoding: base glyph, selector dropped. PUA encoding: `.ai` glyph |
+| Terminal.app                      | Selectors dropped, no marks; PUA line marked            |
+| rio                               | Selectors dropped, no marks; PUA line marked            |
 | Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
-| Terminal emulators                | Not yet tested                                          |
+| VS Code editor                    | Correct: selector and PUA lines both marked             |
+| OnetimePad (Swift shell, Rust core) | Correct: selector and PUA lines both marked, pasted from the browser |
+| VS Code integrated terminal       | Not yet tested                                          |
+| kitty, WezTerm, Ghostty, iTerm2   | Not yet tested                                          |
 
 Safari, Orion and Zed all shape through CoreText, and none honoured
 the format 14 subtable for these private selectors. In Safari and Orion the
 text still renders cleanly (no boxes, no extra spacing), so the failure is
-silent. Other CoreText hosts such as Terminal.app and iTerm2 are expected to
-behave the same way; that is the next thing to verify. Zed additionally shows
-extra spacing in some conditions; that is a Zed display artifact, not CoreText
-fallback, and is documented separately in `zed-about.md`. Whether CoreText can
-be made to honour the selectors, for example by registering the sequences
+silent. A direct CoreText probe confirms the mechanism: for `<A, VS18>`
+CoreText returns the same glyph ID and advance as for a bare `A`, so the
+selector is consumed without effect, while `U+100041` resolves to `uni0041.ai`
+and renders the mark. Under CoreText the PUA encoding therefore works and the
+selector encoding does not, which is the reverse of the fallback story for
+fonts without provenance glyphs. Terminal.app confirms the probe on screen:
+the selector-encoded line is plain and the PUA-encoded line carries the marks.
+rio behaves the same way with its own shaper. iTerm2 and Ghostty shape through
+C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 a󠄁n󠄁d󠄁 a󠄁r󠄁e󠄁 e󠄁x󠄁p󠄁e󠄁c󠄁t󠄁e󠄁d󠄁 t󠄁o󠄁 m󠄁a󠄁t󠄁c󠄁h󠄁 T󠄁e󠄁r󠄁m󠄁i󠄁n󠄁a󠄁l󠄁.󠄁a󠄁p󠄁p󠄁.󠄁 O󠄁n󠄁e󠄁t󠄁i󠄁m󠄁e󠄁P󠄁a󠄁d󠄁,󠄁 a󠄁 m󠄁a󠄁c󠄁O󠄁S󠄁 a󠄁p󠄁p󠄁 w󠄁i󠄁t󠄁h󠄁 a󠄁
+S󠄁w󠄁i󠄁f󠄁t󠄁 s󠄁h󠄁e󠄁l󠄁l󠄁 a󠄁n󠄁d󠄁 a󠄁 R󠄁u󠄁s󠄁t󠄁 c󠄁o󠄁r󠄁e󠄁,󠄁 m󠄁a󠄁r󠄁k󠄁s󠄁 b󠄁o󠄁t󠄁h󠄁 e󠄁n󠄁c󠄁o󠄁d󠄁i󠄁n󠄁g󠄁s󠄁 w󠄁i󠄁t󠄁h󠄁 t󠄁h󠄁e󠄁 r󠄁e󠄁l󠄁e󠄁a󠄁s󠄁e󠄁 A󠄁g󠄁a󠄁v󠄁e󠄁 P󠄁+󠄁
+b󠄁u󠄁i󠄁l󠄁d󠄁,󠄁 w󠄁h󠄁i󠄁l󠄁e󠄁 t󠄁h󠄁e󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 p󠄁r󠄁o󠄁b󠄁e󠄁 r󠄁u󠄁n󠄁 a󠄁g󠄁a󠄁i󠄁n󠄁s󠄁t󠄁 t󠄁h󠄁a󠄁t󠄁 s󠄁a󠄁m󠄁e󠄁 f󠄁o󠄁n󠄁t󠄁 f󠄁i󠄁l󠄁e󠄁 s󠄁t󠄁i󠄁l󠄁l󠄁 d󠄁r󠄁o󠄁p󠄁s󠄁
+t󠄁h󠄁e󠄁 s󠄁e󠄁l󠄁e󠄁c󠄁t󠄁o󠄁r󠄁.󠄁 I󠄁t󠄁s󠄁 t󠄁e󠄁x󠄁t󠄁 t󠄁h󠄁e󠄁r󠄁e󠄁f󠄁o󠄁r󠄁e󠄁 d󠄁o󠄁e󠄁s󠄁 n󠄁o󠄁t󠄁 g󠄁o󠄁 t󠄁h󠄁r󠄁o󠄁u󠄁g󠄁h󠄁 p󠄁l󠄁a󠄁i󠄁n󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 l󠄁i󠄁n󠄁e󠄁
+l󠄁a󠄁y󠄁o󠄁u󠄁t󠄁;󠄁 w󠄁h󠄁i󠄁c󠄁h󠄁 s󠄁h󠄁a󠄁p󠄁e󠄁r󠄁 i󠄁t󠄁 u󠄁s󠄁e󠄁s󠄁 i󠄁s󠄁 n󠄁o󠄁t󠄁 y󠄁e󠄁t󠄁 c󠄁o󠄁n󠄁f󠄁i󠄁r󠄁m󠄁e󠄁d󠄁.󠄁 V󠄁S󠄁 C󠄁o󠄁d󠄁e󠄁'󠄁s󠄁 e󠄁d󠄁i󠄁t󠄁o󠄁r󠄁 r󠄁e󠄁n󠄁d󠄁e󠄁r󠄁s󠄁
+t󠄁h󠄁r󠄁o󠄁u󠄁g󠄁h󠄁 C󠄁h󠄁r󠄁o󠄁m󠄁i󠄁u󠄁m󠄁 a󠄁n󠄁d󠄁 s󠄁h󠄁o󠄁w󠄁s󠄁 m󠄁a󠄁r󠄁k󠄁s󠄁 f󠄁o󠄁r󠄁 b󠄁o󠄁t󠄁h󠄁 e󠄁n󠄁c󠄁o󠄁d󠄁i󠄁n󠄁g󠄁s󠄁.󠄁 Z󠄁e󠄁d󠄁 a󠄁d󠄁d󠄁i󠄁t󠄁i󠄁o󠄁n󠄁a󠄁l󠄁l󠄁y󠄁 s󠄁h󠄁o󠄁w󠄁s󠄁
+e󠄁x󠄁t󠄁r󠄁a󠄁 s󠄁p󠄁a󠄁c󠄁i󠄁n󠄁g󠄁 i󠄁n󠄁 s󠄁o󠄁m󠄁e󠄁 c󠄁o󠄁n󠄁d󠄁i󠄁t󠄁i󠄁o󠄁n󠄁s󠄁;󠄁 t󠄁h󠄁a󠄁t󠄁 i󠄁s󠄁 a󠄁 Z󠄁e󠄁d󠄁 d󠄁i󠄁s󠄁p󠄁l󠄁a󠄁y󠄁 a󠄁r󠄁t󠄁i󠄁f󠄁a󠄁c󠄁t󠄁,󠄁 n󠄁o󠄁t󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁
+f󠄁a󠄁l󠄁l󠄁b󠄁a󠄁c󠄁k󠄁,󠄁 a󠄁n󠄁d󠄁 i󠄁s󠄁 d󠄁o󠄁c󠄁u󠄁m󠄁e󠄁n󠄁t󠄁e󠄁d󠄁 s󠄁e󠄁p󠄁a󠄁r󠄁a󠄁t󠄁e󠄁l󠄁y󠄁 i󠄁n󠄁 `󠄁z󠄁e󠄁d󠄁-󠄁a󠄁b󠄁o󠄁u󠄁t󠄁.󠄁m󠄁d󠄁`󠄁.󠄁 W󠄁h󠄁e󠄁t󠄁h󠄁e󠄁r󠄁 C󠄁o󠄁r󠄁e󠄁T󠄁e󠄁x󠄁t󠄁 c󠄁a󠄁n󠄁
+b󠄁e󠄁 m󠄁a󠄁d󠄁e󠄁 t󠄁o󠄁 h󠄁o󠄁n󠄁o󠄁u󠄁r󠄁 t󠄁h󠄁e󠄁 s󠄁e󠄁l󠄁e󠄁c󠄁t󠄁o󠄁r󠄁s󠄁,󠄁 f󠄁o󠄁r󠄁 e󠄁x󠄁a󠄁m󠄁p󠄁l󠄁e󠄁 b󠄁y󠄁 r󠄁e󠄁g󠄁i󠄁s󠄁t󠄁e󠄁r󠄁i󠄁n󠄁g󠄁 t󠄁h󠄁e󠄁 s󠄁e󠄁q󠄁u󠄁e󠄁n󠄁c󠄁e󠄁s󠄁
 differently in `cmap`, is an open question.
+
+The terminal checks were made with the fonts from `generate-provenance-example.sh`
+copied into `~/Library/Fonts`, Terminal.app with a per-tab font override, rio
+with `RIO_CONFIG_HOME` pointing at a scratch config, and VS Code with a scratch
+`--user-data-dir`, so no user configuration was changed.
 
 ## Files intentionally unchanged
 

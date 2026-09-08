@@ -78,20 +78,24 @@ mkdir -p "$outputdir"
 sample="${outputdir}/sample.txt"
 
 # One line per provenance state. Unmarked text is "assumed human"; the other
-# three lines carry a variation selector after every cluster.
+# three lines carry a variation selector after every cluster. The fifth line is
+# AI text in the PUA encoding, which CoreText renders even though it drops the
+# selectors, so it shows whether a renderer loaded the font at all.
 {
   printf 'Unmarked text renders as the plain base glyphs.\n'
   printf 'Explicit human text looks the same as unmarked text.\n' | python3 "$nfprov" mark --human -
   printf 'AI generated text carries the provenance mark.\n' | python3 "$nfprov" mark --ai -
   printf 'Text of unknown origin has its own variant.\n' | python3 "$nfprov" mark --unknown -
+  printf 'PUA encoded AI text also carries the mark.\n' | python3 "$nfprov" mark --ai --mode=pua -
 } > "$sample"
 
 echo "Sample text: $sample"
-python3 "$nfprov" inspect "$sample" | grep -E '^(characters|explicit_human|ai_vs|unknown):'
+python3 "$nfprov" inspect "$sample" | grep -E '^(characters|explicit_human|ai_vs|ai_pua|unknown):'
 
 # Build the plain reference once; it is the same font without --provenance.
 plaindir="${outputdir}/plain"
 mkdir -p "$plaindir"
+rm -f "$plaindir"/*.[ot]tf   # a stale build would be picked up by first_font()
 echo "Patching reference font (no provenance) into $plaindir"
 patch() {
   # Keep only the patcher's own log lines; FontForge prints a long banner even with --quiet.
@@ -118,6 +122,7 @@ reference=$(first_font "$plaindir")
 for style in "${styles[@]}"; do
   styledir="${outputdir}/${style}"
   mkdir -p "$styledir"
+  rm -f "$styledir"/*.[ot]tf
   echo
   echo "== Style: $style"
   patch "$source_font" --provenance="$style" --outputdir "$styledir"
