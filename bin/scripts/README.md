@@ -33,6 +33,7 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `nfprov.py`: Reference encoder/decoder for inline typographic provenance marks in text [4]
 * `optimize-original-source.sh`: Run all icons in `src/svgs` through inkscape to simplify (remove nodes and edges) [5]
 * `release.sh`: Rough process how a release is created, not used (see `.github/workflows/release.yml`)
+* `render-provenance-coretext.swift`: Render a provenance sample through CoreText (macOS) and report the glyphs it picked [4]
 * `standardize-and-complete-readmes.sh`: Used by `gotta-patch-em-all-font-patcher!.sh`
 * `test-fonts.sh`: Print-to-debug all glyphs we patch in [4]
 * `test-powerlines.sh`: Print-to-debug powerline examples [4]

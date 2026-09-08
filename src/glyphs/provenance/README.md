@@ -430,8 +430,25 @@ bin/scripts/generate-provenance-example.sh identical subtle explicit
 
 It writes patched fonts and one PNG per style to `temp/provenance-example/`,
 which is ignored by git. When more than one style is given and ImageMagick is
-installed, the PNGs are also stacked into `all-styles.png`. The manual steps below cover the same ground in more
-detail. Use a scratch output directory and do not commit generated fonts.
+installed, the PNGs are also stacked into `all-styles.png`.
+
+That script renders through HarfBuzz and FreeType. Check CoreText as well,
+because macOS applications rasterise differently and a mark that is clear in
+`hb-view` can be too faint to see there (the `em/48` sawtooth was). On macOS:
+
+```bash
+swift bin/scripts/render-provenance-coretext.swift \
+  temp/provenance-example/explicit/HackNerdFontP+-Regular.ttf \
+  temp/provenance-example/sample.txt temp/provenance-example/explicit-coretext-16.png 16
+```
+
+Only the PUA line carries a mark in that render, because CoreText drops the
+selectors (see "Observed behaviour"). Render at 16 for terminal sizes and at
+40 to see the shapes. Passing `name:AgaveNFMP+-Regular` instead of a path
+uses the installed font and prints the file CoreText resolved it to, which is
+the check that a reinstalled font, not a stale copy, is being used.
+
+The manual steps below cover the same ground in more detail. Use a scratch output directory and do not commit generated fonts.
 Provenance builds are written as `HackNerdFontP+-Regular.ttf` next to the plain
 `HackNerdFont-Regular.ttf`, so both can share one output directory without
 overwriting each other.
