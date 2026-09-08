@@ -584,7 +584,7 @@ class font_patcher:
                 # The canonical dot is centred on x = 0, move it under the cell
                 glyph.addReference(mark.glyphname, (1, 0, 0, 1, width / 2, 0))
             else:
-                # The canonical bars span 0 .. em, scale them onto the advance width
+                # The canonical 'explicit' marks span 0 .. em, scale them onto the advance width
                 glyph.addReference(mark.glyphname, (width / self.sourceFont.em, 0, 0, 1, 0, 0))
         glyph.width = base_glyph.width
         glyph.vwidth = base_glyph.vwidth
@@ -635,33 +635,46 @@ class font_patcher:
                 angle = corner * math.pi / 4
                 pen.lineTo((radius * math.sin(angle), cy + radius * math.cos(angle)))
             pen.closePath()
-        elif state == 'ai':
+        elif state == 'unknown':
             thickness = min(em / 48, usable)
             y0 = self.font_dim['ymin'] + margin
             y1 = y0 + thickness
             # Canonical bar over 0 .. em, scaled per glyph in derive_provenance_glyph(),
-            # so a marked run reads as one continuous underline.
+            # so a marked run reads as one continuous underline. The bar is the
+            # rarer 'unknown' mark, not the 'ai' one: on its own a plain
+            # underline is too easily read as link or spell-check styling, and
+            # unknown text mostly appears alongside AI text, where the sawtooth
+            # has already established that these are provenance marks.
             pen.moveTo((0, y1))
             pen.lineTo((em, y1))
             pen.lineTo((em, y0))
             pen.lineTo((0, y0))
             pen.closePath()
         else:
-            # A single triangle per cell, at the same weight as the 'ai' bar. Both
+            # 'ai', the mark people see most: a single triangle per cell. Both
             # ends sit in the valley, so consecutive cells join and a marked run
             # reads as one continuous sawtooth rather than a row of chevrons.
-            thickness = min(em / 48, usable)
+            # The shape is not an existing text-decoration convention, which is
+            # the point.
+            #
+            # Nominally three times the weight of the bar. A horizontal bar
+            # snaps into one pixel row and renders dark at any weight, whereas a
+            # diagonal stroke is spread across rows and antialiased to grey:
+            # at em/48 the wave was barely visible in CoreText at 14-16px, at
+            # em/16 it has the same perceived weight as the bar.
+            thickness = min(em / 16, usable)
             y0 = self.font_dim['ymin'] + margin
-            amplitude = min(em / 10, usable - thickness)
+            amplitude = min(em / 8, usable - thickness)
             spine = ((0, y0), (em / 2, y0 + amplitude), (em, y0))
             # Stroked by offsetting the spine vertically: the outline stays a
             # straight-line polygon, and the apparent weight thins slightly on the
-            # diagonals, which is what a drawn stroke would do anyway.
-            pen.moveTo(spine[0])
-            for point in spine[1:]:
-                pen.lineTo(point)
-            for x, y in reversed(spine):
+            # diagonals, which is what a drawn stroke would do anyway. Upper edge
+            # first, left to right, so the contour runs clockwise like the bar.
+            pen.moveTo((spine[0][0], spine[0][1] + thickness))
+            for x, y in spine[1:]:
                 pen.lineTo((x, y + thickness))
+            for point in reversed(spine):
+                pen.lineTo(point)
             pen.closePath()
         pen = None
         mark.width = em
