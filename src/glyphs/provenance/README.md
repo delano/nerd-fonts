@@ -161,7 +161,7 @@ not rebuilt and the Version name is not tagged.
 | ----------- | ----------------------- | ------------------------------------------- | ------------------------------------------- |
 | `identical` | Reference to base glyph | Reference to base glyph                     | Reference to base glyph                     |
 | `subtle`    | Reference to base glyph | Reference to base glyph                     | Base glyph plus a dot below the baseline    |
-| `explicit`  | Reference to base glyph | Base glyph plus a sawtooth under the cell   | Base glyph plus a bar under the cell        |
+| `explicit`  | Reference to base glyph | Base glyph plus a bar under the cell        | Base glyph plus a sawtooth under the cell   |
 
 `.human` is never marked, in any style. Unmarked text is assumed human, so a
 mark there would make the two states differ visually, which M1 forbids.
@@ -174,15 +174,37 @@ rule was prototyped as an alternative and rejected: it differed from `explicit`
 only in weight, and at terminal sizes both land in the same pixel row, so the
 distinction survived only as a grey level.
 
-`explicit` marks with a stroke `em/48` thick. State is carried by the shape of
-that stroke, not by its weight or position: `ai` is a straight bar over the
-whole cell, so a marked run reads as a continuous underline, and `unknown` is a
-single triangle of amplitude `em/10` with both ends in the valley, so
-consecutive cells join and a run reads as one continuous sawtooth. The sawtooth
-outline is the spine offset vertically, which keeps it a straight-line polygon
-and thins the apparent weight slightly on the diagonals, as a drawn stroke
-would. A dashed rule was tried first and rejected: at terminal sizes it differed
-from the `ai` bar only in how much of each cell was inked.
+`explicit` carries state in the shape of a stroke below the baseline, not in
+its position: `ai` is a single triangle of amplitude `em/8` with both ends in
+the valley, so consecutive cells join and a run reads as one continuous
+sawtooth, and `unknown` is a straight bar over the whole cell, so a run reads
+as a continuous underline. The sawtooth outline is the spine offset vertically,
+which keeps it a straight-line polygon and thins the apparent weight slightly
+on the diagonals, as a drawn stroke would.
+
+The bar is `em/48` thick and the sawtooth `em/16`, three times as much. The
+nominal weights differ so that the perceived weights match: a horizontal bar
+snaps into a single pixel row and renders dark at any size, whereas a diagonal
+stroke is spread across rows and antialiased to grey. At `em/48` the sawtooth
+was barely visible in CoreText at 14 to 16px (it had been checked only through
+FreeType, where the bar had been the `ai` mark); at `em/16` it reads at the
+same weight as the bar in both rasterisers. Amplitudes of `em/10` and `em/8`
+were compared at that weight; `em/8` was chosen because a heavier stroke needs
+more height to still read as a wave rather than a smeared band.
+
+The assignment is deliberate. The `ai` mark is the one people will see most,
+and inline provenance is not yet a convention readers recognise, so the mark
+has to be distinctive without being distracting. A plain underline fails the
+first half: on its own it reads as link or spell-check styling. The sawtooth
+matches no existing text decoration, so it establishes "this is a provenance
+mark" by itself. `unknown` text mostly appears in output that also contains
+AI text, and once the sawtooth has set the vocabulary the bar beside it is
+read as a second provenance state rather than as an underline.
+
+A dashed rule was tried for `unknown` first and rejected: at terminal sizes it
+differed from the bar only in how much of each cell was inked. An earlier
+build had the shapes the other way round (bar for `ai`, sawtooth for
+`unknown`); it was swapped for the reason above.
 
 `subtle` leaves `unknown` unmarked. A second shape small enough to belong to the
 dot vocabulary is not reliably distinguishable from the dot at the sizes that
@@ -194,7 +216,7 @@ vocabulary, tracked separately.
 with `glyphPen` and straight line segments only (`curveTo()` takes cubic or
 quadratic control points depending on the source outline type, so Bezier
 segments would not be portable). The `subtle` dot is drawn centred on `x = 0`
-and translated to `width/2` by `derive_provenance_glyph()`; the `explicit` bars
+and translated to `width/2` by `derive_provenance_glyph()`; the `explicit` marks
 are drawn canonically over `0` to `em` and scaled onto the base advance width.
 Both are clamped into the space between the baseline and `font_dim['ymin']`,
 with a margin of 12 % of that depth at each end, so the font's own descender
@@ -441,6 +463,40 @@ python3 bin/scripts/test-provenance.py --selftest
 ```
 
 Repeat for `--mono`, `--variable-width-glyphs`, and an OTF source.
+
+### Installed Agave P+ example fonts
+
+The renderer checks below that name "Agave P+" use six fonts installed in
+`~/Library/Fonts`, not the tracked `patched-fonts/Agave/` release builds. The
+tracked builds are plain `--complete` fonts with no provenance glyphs. The
+installed set is built from the unpatched Agave sources with the default symbol
+sets only, one run per width flag, and is not committed:
+
+```bash
+out=temp/agave-pplus
+mkdir -p "$out"
+for weight in Regular Bold; do
+  for width in "" --mono --variable-width-glyphs; do
+    fontforge --script ./font-patcher "src/unpatched-fonts/Agave/Agave-$weight.ttf" \
+      --provenance $width --quiet --no-progressbars --outputdir "$out"
+  done
+done
+for f in "$out"/*.ttf; do python3 bin/scripts/test-provenance.py "$f"; done   # needs fontTools
+cp "$out"/*.ttf ~/Library/Fonts/
+```
+
+The width flag maps onto the family name: no flag gives `AgaveNerdFontP+`,
+`--mono` gives `AgaveNerdFontMonoP+`, and `--variable-width-glyphs` gives
+`AgaveNerdFontPropoP+`. Drop weights or widths from the loops to rebuild a
+subset; each output file is independent of the others.
+
+That yields `AgaveNerdFont{,Mono,Propo}P+-{Regular,Bold}.ttf` at about
+0.5 to 0.7 MB each, with 188 marked base glyphs per font. Any change to
+`create_provenance_mark()` or `derive_provenance_glyph()` changes what those
+fonts show, so rebuild and reinstall them, then restart the application under
+test. Compared with the previous install, the glyph count and the full name
+table should be identical and only the `provenance.mark.*` outlines should
+differ.
 
 ## Observed behaviour
 
