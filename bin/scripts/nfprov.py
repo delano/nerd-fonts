@@ -228,6 +228,24 @@ def do_mark(text, state, mode, selectors, pua2base, base2pua):
     return "".join(out)
 
 
+def do_mark_added(old_text, new_text, state, mode, selectors, pua2base, base2pua):
+    """Find the common prefix and suffix of old_text and new_text,
+    and mark the newly added/modified middle part of new_text.
+    """
+    if not old_text:
+        return do_mark(new_text, state, mode, selectors, pua2base, base2pua)
+    pre = 0
+    while pre < min(len(old_text), len(new_text)) and old_text[pre] == new_text[pre]:
+        pre += 1
+    suf = 0
+    while (suf < min(len(old_text), len(new_text)) - pre
+           and old_text[-1 - suf] == new_text[-1 - suf]):
+        suf += 1
+    end = len(new_text) - suf
+    middle_marked = do_mark(new_text[pre:end], state, mode, selectors, pua2base, base2pua)
+    return new_text[:pre] + middle_marked + new_text[end:]
+
+
 def do_convert(text, from_mode, to_mode, selectors, pua2base, base2pua):
     """Convert the AI state between VS and PUA encodings; pass all else through."""
     if from_mode == to_mode:
@@ -380,6 +398,37 @@ def selftest():
     check(mark(reserved) == reserved, "reserved marks must be left alone")
     check(human != ai, "selector table is degenerate")
 
+    # diff-aware marking tests
+    def mark_added(old, new, state="ai", mode="vs"):
+        return do_mark_added(old, new, state, mode, selectors, pua2base, base2pua)
+
+    # 1. Simple added characters in the middle
+    check(
+        mark_added("The fox.", "The quick fox.") == "The q" + ai + "u" + ai + "i" + ai + "c" + ai + "k" + ai + " fox.",
+        "simple diff-aware mark failed"
+    )
+    # 2. No changes
+    check(
+        mark_added("No changes here.", "No changes here.") == "No changes here.",
+        "diff-aware mark with identical text should not change anything"
+    )
+    # 3. Fully new text (empty old_text)
+    check(
+        mark_added("", "Hello") == "H" + ai + "e" + ai + "l" + ai + "l" + ai + "o" + ai,
+        "diff-aware mark with empty old text failed"
+    )
+    # 4. Multi-code-point emoji and clusters in prefix/suffix should remain unmarked
+    check(
+        mark_added("\U0001f44d\U0001f3fd start mid end", "\U0001f44d\U0001f3fd start NEW mid end") ==
+        "\U0001f44d\U0001f3fd start N" + ai + "E" + ai + "W" + ai + " mid end",
+        "emoji prefix/suffix was incorrectly marked"
+    )
+    # 5. Check PUA mode with diff-aware marking
+    check(
+        mark_added("Hello", "Hello A", mode="pua") == "Hello" + mark_added("", " A", mode="pua"),
+        "PUA mode diff-aware mark failed"
+    )
+
     print("nfprov: selftest OK")
     return 0
 
@@ -413,6 +462,14 @@ def build_parser():
             "--" + state, dest="state", action="store_const", const=state
         )
     marker.add_argument("--mode", choices=("vs", "pua"), default="vs")
+    marker.add_argument(
+        "--old-string",
+        help="literal old string to use as base for diff-aware marking",
+    )
+    marker.add_argument(
+        "--diff-base",
+        help="compare input FILE against this base file and only mark the changed span",
+    )
     add_common(marker)
 
     converter = subs.add_parser("convert", help="convert between encodings")
@@ -458,9 +515,24 @@ def main(argv=None):
     if args.command == "inspect":
         result = do_inspect(text, selectors, pua2base)
     elif args.command == "mark":
-        result = do_mark(
-            text, args.state, args.mode, selectors, pua2base, base2pua
-        )
+        old_text = None
+        if args.diff_base:
+            try:
+                old_text = read_input(args.diff_base)
+            except OSError as error:
+                sys.stderr.write(f"{PROG}: cannot read diff base: {error}\n")
+                return 1
+        elif args.old_string is not None:
+            old_text = args.old_string
+
+        if old_text is not None:
+            result = do_mark_added(
+                old_text, text, args.state, args.mode, selectors, pua2base, base2pua
+            )
+        else:
+            result = do_mark(
+                text, args.state, args.mode, selectors, pua2base, base2pua
+            )
     elif args.command == "convert":
         result = do_convert(
             text, args.from_mode, args.to_mode, selectors, pua2base, base2pua
