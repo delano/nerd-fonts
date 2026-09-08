@@ -9,6 +9,7 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `archive-fonts.sh`: Creates the release zip file of one or more font(s) from existing `patched-fonts/` content [1]
 * `braille/`: Suite to create custom Braille fonts, used by `font-patcher` (on demand)
 * `cheatsheet.sh`: Search for a glyph by part of its name [4]
+* `compare-font-derivation.py`: Report how a patched/subset webfont differs from its upstream source, with an OFL Reserved Font Name verdict (needs `fontTools`) [4]
 * `data/`: Contains plain text files used to generate the CSS and cheat sheet files
 * `data/sankey/`: Contains instructions on how to create the sankey glyph table manually [3]
 * `docker-entrypoint.sh`: This script is packaged into the docker container and is usually used to start patching [2]
