@@ -35,35 +35,30 @@ def fail(msg):
     sys.exit(2)
 
 
-def mark(text):
-    if not text:
-        return text
-    out = subprocess.run(
-        [sys.executable, str(NFPROV), "mark", "--ai", "--mode", MODE, "-"],
-        input=text.encode("utf-8"), capture_output=True,
-    )
-    if out.returncode != 0:
-        fail(f"nfprov.py failed: {out.stderr.decode('utf-8', 'replace').strip()}")
-    return out.stdout.decode("utf-8")
-
-
 def mark_added(old, new):
     """Return `new` with the model-added middle marked. An Edit's new_string
     usually repeats old_string's leading and trailing context, which the
     model did not write, so only the span between the common prefix and
     suffix is marked. A character-level diff is deliberately avoided: it
     treats shared letters inside a rewritten sentence as human."""
-    if not old:
-        return mark(new)
-    pre = 0
-    while pre < min(len(old), len(new)) and old[pre] == new[pre]:
-        pre += 1
-    suf = 0
-    while (suf < min(len(old), len(new)) - pre
-           and old[-1 - suf] == new[-1 - suf]):
-        suf += 1
-    end = len(new) - suf
-    return new[:pre] + mark(new[pre:end]) + new[end:]
+    cmd = [sys.executable, str(NFPROV), "mark", "--ai", "--mode", MODE]
+    if old:
+        cmd.extend(["--old-string", old])
+    cmd.append("-")
+
+    out = subprocess.run(
+        cmd,
+        input=new.encode("utf-8"), capture_output=True,
+    )
+    if out.returncode != 0:
+        fail(f"nfprov.py failed: {out.stderr.decode('utf-8', 'replace').strip()}")
+    return out.stdout.decode("utf-8")
+
+
+def mark(text):
+    if not text:
+        return text
+    return mark_added("", text)
 
 
 def mark_span(text, old, new, replace_all):
