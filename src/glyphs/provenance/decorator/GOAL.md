@@ -1,54 +1,60 @@
 # Goal
 
-Let anyone render provenance-marked text on a page they control, on any
-browser, without the reader installing a font and without changing the
-producer.
+Let page authors show provenance-marked text without requiring readers to
+install a font or changing the producer. A decorator detects marks in text,
+wraps marked runs in HTML spans, and lets CSS display the state.
 
-## Why
+## When to use a decorator
 
-Marked text depends today on a P+ font and a shaper that honours it. That
-excludes every mobile browser, every iOS browser, and every page whose author
-controls the markup but not the reader's fonts. See HTML-RENDERING.md for the
-measurements that show a decorator pass closes that gap.
+A provenance font can display marks only when the reader has that font and a
+compatible text shaper. A decorator works on a page whose author controls the
+HTML or DOM. It does not need the reader's font. See
+[HTML-RENDERING.md](HTML-RENDERING.md) for the measurements behind this
+approach.
 
-## What this directory is
+## Protocol material
 
-The consumer-side contract for the decorator, in the form that lets a third
-party implement it in an afternoon and prove it correct:
+This directory contains the consumer-facing protocol material.
 
-| File | Role |
+| File | Purpose |
 | --- | --- |
-| DECORATOR.md | The contract: input, algorithm, output markup, options. |
-| fixtures.json | Conformance cases. An implementation is correct if it reproduces every `runs` entry. |
-| mapping.json | Copy of `../mapping.json`, the code point registry an implementation vendors. The source of truth stays one level up. |
-| HTML-RENDERING.md | The measurements behind the approach. |
+| [DECORATOR.md](DECORATOR.md) | Defines decorator input, output, options, and run detection. |
+| `fixtures.json` | Defines conformance. A decorator must reproduce each recorded `runs` result. |
+| `mapping.json` | A copy of the code-point registry currently held in `../mapping.json`. |
+| [HTML-RENDERING.md](HTML-RENDERING.md) | Records the HTML rendering measurements and their limits. |
 
-## Rollout
+The duplicate mapping files are temporary. The proposed repository split in
+[ADR 0006](../../../../docs/adr/0006-decorator-packages-and-repository.md)
+would create one canonical registry and have each package vendor its own copy.
 
-1. Fix the contract and fixture here. Nothing else depends on a package.
-2. JavaScript on npm: DOM decorator, rehype plugin, markdown-it plugin. npm
-   gives a CDN script tag, so the smallest integration is one script tag and
-   one stylesheet.
-3. Python on PyPI: `nfprov render`, next to the marker.
-4. Ruby gem: kramdown hook for Jekyll and GitHub Pages.
+## Current implementation
 
-Each port is one file plus the fixture runner and carries no dependencies. Ship
-the JavaScript port and wait for one breakage report before porting further.
-Extend the fixture on every report.
+The current, un-packaged implementations are:
+
+- `css/nfprov.js`: the browser DOM decorator.
+- `css/nfprov.css`: an optional stylesheet for the emitted classes.
+- `bin/scripts/nfprov.py render`: the Python HTML renderer.
+
+The `prototypes/` directory contains earlier implementations, fixture runners,
+and the browser test rig. It is not part of the font build.
+
+## Proposed packages
+
+ADR 0006 proposes JavaScript first, then a Python decoder and renderer, then a
+Ruby implementation. Every package would use the same fixture and vendor the
+registry. The browser extension and editor integrations are separate future
+work; neither exists yet.
 
 ## Non-goals
 
-- Visual style. Implementations emit a class and an attribute. CSS is the
-  integrator's. A shared stylesheet may ship alongside but is not the contract.
-- Producing marks. The marker in `bin/scripts/nfprov.py` does that.
-- Editor decorations. The same run detection can drive VS Code or CodeMirror
-  decoration APIs; that is a separate deliverable.
-- Inferring provenance from unmarked text.
+- Defining a visual style. The contract defines classes and an attribute; CSS
+  is an integration choice.
+- Adding marks to text. The encoder remains in `bin/scripts/nfprov.py`.
+- Editor decorations. The same run detection may later support editor APIs.
+- Inferring provenance from text that has no marks.
 
 ## Status
 
-Two prototypes, Python and JavaScript, pass all cases in fixtures.json.
-Both are in `prototypes/` with their fixture runners and the Chromium and
-WebKit test rig. The fixture was generated from the Python prototype and
-checked by hand; the JavaScript prototype was then run against it. Neither
-is packaged.
+The JavaScript and Python implementations are in this repository but have not
+been published as packages. The repository split and standalone specification
+have not started.

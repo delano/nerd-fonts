@@ -73,7 +73,7 @@ In this directory:
 Related scripts:
 
 - `bin/scripts/nfprov.py` (listed as `[4]` in `bin/scripts/README.md`):
-  standard-library-only reference encoder and decoder for marked text.
+  standard-library-only encoder, decoder, and HTML renderer for marked text.
 - `bin/scripts/test-provenance.py` (listed as `[9]`): `fontTools`-based CI
   validator for patched fonts.
 - `bin/scripts/generate-provenance-example.sh` (listed as `[4]`): patches a
@@ -322,15 +322,23 @@ nfprov.py inspect FILE
 nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
 nfprov.py convert --from=vs|pua --to=vs|pua FILE
 nfprov.py strip FILE
+nfprov.py render [--strip] [--no-merge-whitespace] FILE
 nfprov.py --selftest
 ```
 
 `FILE` may be `-` for stdin; output goes to stdout unless `-o`/`--output` is
 given. `inspect` prints a `key: value` report of per-state counts plus any
 unrecognised selectors and PUA code points. `strip` warns on stderr that it is
-lossy before writing. `--mode=pua` is only valid with `--ai`, since there is no
-PUA encoding for the other states. `--selftest` runs the internal round-trip
-tests used by CI.
+lossy before writing. `render` writes escaped HTML and wraps marked runs in
+spans as defined in `decorator/DECORATOR.md`. `--mode=pua` is only valid with
+`--ai`, since there is no PUA encoding for the other states. `--selftest` runs
+encoder round trips and every decorator fixture used by CI.
+
+The script currently combines the font-workflow encoder, diagnostic commands,
+and the decorator renderer. The proposed repository split in
+[ADR 0006](../../../docs/adr/0006-decorator-packages-and-repository.md) would
+extract the shared parsing code and renderer. The encoder and font verification
+would remain in this fork.
 
 Cluster rules for `mark`:
 

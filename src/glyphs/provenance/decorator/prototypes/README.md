@@ -1,15 +1,15 @@
 # Decorator prototypes
 
-The two implementations that pass `../fixtures.json`, plus the rig that
-measured them. Kept as prototypes: the JavaScript belongs in an npm package
-and the Python in `nfprov.py render` (ADR 0006), and neither move has
-happened. Nothing here is a dependency of the font build.
+This directory keeps the earlier decorator implementations and the browser
+measurement rig. The current implementations are `css/nfprov.js` and
+`bin/scripts/nfprov.py render`; see [GOAL.md](../GOAL.md). Nothing here is a
+dependency of the font build.
 
 | File | Role |
 | --- | --- |
-| `nfprov.js` | Client-side. `runs(text, opts)` per DECORATOR.md using `Intl.Segmenter`; `render(root)` walks text nodes and wraps runs in spans. No dependencies. |
-| `nfprov_html.py` | Server-side. `runs(text, strip)` and `to_html(text, strip)`. Reuses `cluster_end` from `bin/scripts/nfprov.py` and reads `../mapping.json`. |
-| `check_fixtures.mjs`, `check_fixtures.py` | Fixture runners. Exit non-zero on any failing case. |
+| `nfprov.js` | Earlier client-side implementation. It uses `Intl.Segmenter`, detects runs, and wraps them in spans. |
+| `nfprov_html.py` | Earlier server-side implementation. It reuses `cluster_end` from `bin/scripts/nfprov.py` and reads `../mapping.json`. |
+| `check_fixtures.mjs`, `check_fixtures.py` | Fixture runners for these prototype implementations. They exit non-zero when a case fails. |
 | `gen_fixtures.py` | Generates `../fixtures.json` from the Python implementation. Run only to add cases; the fixture is checked by hand and never edited to fit an implementation. |
 | `build_page.py` | Writes `test.html` from `example-selector.txt` and `../../example-marked.txt`. |
 | `test.html` | Four sections: raw selector text, Python spans, JS spans on selector text, JS spans on PUA text. Inline CSS: sawtooth underline for `ai`, dashed for `unknown`. |
@@ -25,8 +25,9 @@ node run.mjs
 node copy.mjs
 ```
 
-The Python needs fontTools only transitively through `nfprov.py`; use the
-repo `.venv`.
+The Python prototype imports `nfprov.py`. No `fontTools` import is required
+by either file, but the documented command uses the repository virtual
+environment.
 
 ## Results, 2026-09-11
 
