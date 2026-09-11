@@ -509,6 +509,105 @@ def selftest():
         "PUA mode diff-aware mark failed"
     )
 
+    # --- cluster_end (shared core; moves with the decoder per ADR 0006) ---
+    sel_cps = set(selectors.values())
+
+    def cluster(text, start=0):
+        return cluster_end(list(text), start, sel_cps)
+
+    check(cluster("abc") == 1, "ASCII: one code point per cluster")
+    check(cluster("abc", 1) == 2, "ASCII: start offset respected")
+    check(cluster("e\u0301x") == 2, "base + combining mark")
+    check(cluster("e\u0301\u0302x") == 3, "base + two combining marks")
+    check(cluster(family + "x") == 5, "ZWJ sequence: ZWJ and joined char stay")
+    check(cluster(family) == 5, "ZWJ sequence at end of text")
+    check(cluster(tone + "x") == 2, "skin-tone modifier stays with base")
+    check(cluster(flag + "\U0001f1e8") == 2, "regional pair: exactly two")
+    check(cluster("\U0001f1e8x") == 1, "lone regional indicator: no pair")
+    check(cluster("\u2764\ufe0fx") == 2, "VS16 stays with base")
+    check(cluster("\u2764\ufe0ex") == 2, "VS15 stays with base")
+    check(cluster(ai + "x") == 1, "lone provenance selector: own cluster")
+    check(cluster("\ufe0fx") == 1, "lone VS16: own cluster")
+    check(cluster("a" + ai + "b") == 1, "provenance selector ends the cluster")
+    check(
+        cluster("e\u0301" + ai + "b") == 2,
+        "provenance selector ends the cluster after combining marks",
+    )
+    check(
+        cluster(family + ai + "b") == 5,
+        "provenance selector ends the cluster after a ZWJ sequence",
+    )
+    check(is_combining("\u0301"), "U+0301 is combining")
+    check(not is_combining("a"), "ASCII letter is not combining")
+
+    # --- to_html (renderer; moves with the decoder per ADR 0006) ---
+    def render(text, **options):
+        return to_html(text, selectors, pua2base, **options)
+
+    def span(state, text, prefix="prov"):
+        return (
+            f'<span class="{prefix} {prefix}-{state}" '
+            f'data-prov="{state}">{text}</span>'
+        )
+
+    check(render("") == "", "empty input renders empty")
+    check(render("plain") == "plain", "unmarked text is emitted bare")
+    check(render("a" + ai) == span("ai", "a" + ai), "span shape")
+    check(
+        render("<&\"") == "&lt;&amp;&quot;", "escape < & \" in unmarked run"
+    )
+    check(
+        render("<" + ai + "&" + ai + "\"" + ai)
+        == span("ai", "&lt;" + ai + "&amp;" + ai + "&quot;" + ai),
+        "escape < & \" inside a marked run",
+    )
+    check(
+        render("a" + ai + "<b>" + human + " & x")
+        == span("ai", "a" + ai) + "&lt;b" + span("human", "&gt;" + human) + " &amp; x",
+        "mixed marked/unmarked runs escape independently",
+    )
+    check(
+        render("a" + ai, class_prefix="x") == span("ai", "a" + ai, prefix="x"),
+        "custom class_prefix changes classes only",
+    )
+    check(
+        'data-prov="ai"' in render("a" + ai, class_prefix="x"),
+        "custom class_prefix must not touch data-prov",
+    )
+    check(
+        render("a" + ai + " b" + ai) == span("ai", "a" + ai + " b" + ai),
+        "merge_whitespace default joins same-state neighbours",
+    )
+    check(
+        render("a" + ai + " b" + ai, merge_whitespace=False)
+        == span("ai", "a" + ai) + " " + span("ai", "b" + ai),
+        "merge_whitespace=False keeps whitespace bare",
+    )
+    check(
+        render("a" + ai + " b" + ai, strip=True) == span("ai", "a b"),
+        "strip=True drops selectors but keeps the state",
+    )
+    pua_cp, (pua_base, pua_state) = next(
+        (cp, entry) for cp, entry in pua2base.items() if entry[1] == "ai"
+    )
+    check(
+        render(chr(pua_cp)) == span("ai", chr(pua_base) + ai),
+        "PUA input decodes to base + selector",
+    )
+    check(
+        render(chr(pua_cp), strip=True) == span("ai", chr(pua_base)),
+        "PUA input with strip decodes to base only",
+    )
+    check(pua_state == "ai", "PUA sample entry must be an ai entry")
+    roundtrip = "x<y" + ai + " & " + family + human + "\n\"z\""
+    rendered = render(roundtrip)
+    for tag in (span("ai", ""), span("human", "")):
+        rendered = rendered.replace(tag[: -len("</span>")], "")
+    check(
+        html.unescape(rendered.replace("</span>", "")) == roundtrip,
+        "unescaped span text must reproduce the input without strip/PUA",
+    )
+
     # decorator contract conformance: runs() must match every fixtures.json case
     with open(FIXTURES_PATH, encoding="utf-8") as handle:
         fixtures = json.load(handle)
