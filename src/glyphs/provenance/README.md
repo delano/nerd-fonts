@@ -17,6 +17,35 @@ Fonts". This README covers only how it is wired into this repository.
 Acceptance criteria (must have, may have, non-goals) and the approaches they
 rule out are in [CRITERIA.md](CRITERIA.md).
 
+## Background: what Nerd Fonts is
+
+Nerd Fonts descends from earlier font-patching work; its `font-patcher` is a
+direct descendant of vim-powerline's fontpatcher script. It takes existing
+programming fonts and adds thousands of icons from projects such as Font
+Awesome, Devicons, Octicons, and Powerline, placing them at consistent code
+points so that terminals, shell prompts, and editors can code against known
+positions.
+
+Those code points are mostly in Unicode's Private Use Areas. This is a de facto
+convention rather than a standard — the PUA is by definition unstandardised, and
+the mapping holds because of adoption, not because Unicode assigns it. Where an
+upstream set already had established positions, Nerd Fonts preserves them
+(Powerline keeps U+E0A0–U+E0D4, for example); the rest are relocated into free
+space. Not every patched glyph is PUA, and scale has pushed the collection past
+Plane 0: Material Design Icons alone is roughly seven thousand glyphs and lives
+in Supplementary Private Use Area-A at U+F0001–U+F1AF0.
+
+The result is a single font that renders both code and the icons those tools
+want, which removes the dependence on fallback fonts and the missing-glyph boxes
+that come with it. Nerd Fonts' main contribution is not glyph injection itself —
+that predates it — but aggregating many icon sets at scale behind a consistent
+mapping, and shipping a patcher that reproduces that mapping for any font.
+
+Provenance marking, described below, is a different kind of patch: it adds no
+icons and copies nothing from a symbol font. It derives variants from the base
+font's own glyphs, so the considerations that govern the icon sets — collision
+avoidance, code-point allocation across planes — apply to it only in part.
+
 ## Behaviour
 
 A provenance-aware patched font renders marked text with variants derived from
