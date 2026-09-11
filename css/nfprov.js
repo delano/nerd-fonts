@@ -3,7 +3,8 @@
  *# [Nerd Fonts]  Development Website: https://github.com/ryanoasis/nerd-fonts
  *# [Nerd Fonts]  nfprov.js: client-side provenance decorator
  *# [Nerd Fonts]  Decorator contract version: 1 (see src/glyphs/provenance/decorator/DECORATOR.md)
- *# [Nerd Fonts]  Mapping version: 1 (see src/glyphs/provenance/mapping.json)
+ *# [Nerd Fonts]  Mapping version: 1 (see src/glyphs/provenance/mapping.json;
+ *# [Nerd Fonts]  the registry is embedded below as SELECTORS and PUA_RANGES)
  *#
  *# Renders in-band provenance marks (selector or PUA encoding) as HTML spans
  *# carrying a class and a data-prov attribute. No font is required to see the
@@ -129,7 +130,13 @@
     return count;
   }
 
-  var nfprov = { runs: runs, render: render, contractVersion: 1, mappingVersion: 1 };
+  var nfprov = {
+    runs: runs,
+    render: render,
+    contractVersion: 1,
+    mappingVersion: MAPPING_VERSION,
+    mapping: { version: MAPPING_VERSION, selectors: SELECTORS, puaRanges: PUA_RANGES }
+  };
 
   if (typeof module === 'object' && module.exports) {
     module.exports = nfprov;
