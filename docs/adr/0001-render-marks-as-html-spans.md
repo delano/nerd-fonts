@@ -21,6 +21,13 @@ Chromium and WebKit 26.5, system font, no P+ font: server-side and
 client-side passes produced identical runs and visible marks. Measurements in
 `src/glyphs/provenance/decorator/HTML-RENDERING.md`.
 
+## Choosing a pass
+
+Server-side for anything published: it needs no JavaScript and survives feeds
+and readers, which strip scripts. Client-side for surfaces the author does not
+own. Both emit the same markup and share one stylesheet, which is where the
+sawtooth-for-ai and bar-for-unknown language from the font is reproduced.
+
 ## Consequences
 
 - iOS and mobile are covered on pages the author controls.

@@ -11,11 +11,13 @@
 #     nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
 #     nfprov.py convert --from=vs|pua --to=vs|pua FILE
 #     nfprov.py strip FILE
+#     nfprov.py render [--strip] [--no-merge-whitespace] FILE
 #     nfprov.py --selftest
 #
 #     FILE may be '-' for stdin. Output goes to stdout unless -o/--output.
 
 import argparse
+import html
 import io
 import json
 import os
@@ -30,6 +32,17 @@ MAPPING_PATH = os.path.join(
     "glyphs",
     "provenance",
     "mapping.json",
+)
+
+FIXTURES_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "..",
+    "src",
+    "glyphs",
+    "provenance",
+    "decorator",
+    "fixtures.json",
 )
 
 PROG = "nfprov"
@@ -292,6 +305,72 @@ def do_strip(text, selectors, pua2base):
     return "".join(out)
 
 
+def do_runs(text, selectors, pua2base, strip=False, merge_whitespace=True):
+    """Split `text` into an ordered list of (state, text) runs.
+
+    Implements the decorator contract in
+    src/glyphs/provenance/decorator/DECORATOR.md version 1. `state` is a
+    selector name from mapping.json's variation_selectors, or None.
+    """
+    sel_cps = set(selectors.values())
+    sel2name = {cp: name for name, cp in selectors.items()}
+    chars = list(text)
+    items = []
+    index = 0
+    while index < len(chars):
+        cp = ord(chars[index])
+        if cp in pua2base:
+            base_cp, state = pua2base[cp]
+            out = chr(base_cp) if strip else chr(base_cp) + chr(selectors[state])
+            index += 1
+        elif chars[index].isspace():
+            state = "ws"
+            out = chars[index]
+            index += 1
+        else:
+            end = cluster_end(chars, index, sel_cps)
+            cluster = "".join(chars[index:end])
+            state, out, index = None, cluster, end
+            if index < len(chars) and ord(chars[index]) in sel_cps:
+                state = sel2name[ord(chars[index])]
+                if not strip:
+                    out += chars[index]
+                index += 1
+        if items and items[-1][0] == state:
+            items[-1][1] += out
+        else:
+            items.append([state, out])
+
+    merged = []
+    for position, (state, out) in enumerate(items):
+        following = items[position + 1][0] if position + 1 < len(items) else None
+        if merge_whitespace and state == "ws" and merged and merged[-1][0] and merged[-1][0] == following:
+            merged[-1][1] += out
+            continue
+        if state == "ws":
+            state = None
+        if merged and merged[-1][0] == state:
+            merged[-1][1] += out
+        else:
+            merged.append([state, out])
+    return [(state, out) for state, out in merged]
+
+
+def to_html(text, selectors, pua2base, strip=False, merge_whitespace=True, class_prefix="prov"):
+    """Render `text` as HTML spans per the decorator contract's Markup section."""
+    parts = []
+    for state, out in do_runs(text, selectors, pua2base, strip, merge_whitespace):
+        escaped = html.escape(out)
+        if state:
+            parts.append(
+                f'<span class="{class_prefix} {class_prefix}-{state}" '
+                f'data-prov="{state}">{escaped}</span>'
+            )
+        else:
+            parts.append(escaped)
+    return "".join(parts)
+
+
 # --- CLI -------------------------------------------------------------------
 
 
@@ -429,6 +508,28 @@ def selftest():
         "PUA mode diff-aware mark failed"
     )
 
+    # decorator contract conformance: runs() must match every fixtures.json case
+    with open(FIXTURES_PATH, encoding="utf-8") as handle:
+        fixtures = json.load(handle)
+    for case in fixtures["cases"]:
+        options = case["options"]
+        got = [
+            {"state": state, "text": run_text}
+            for state, run_text in do_runs(
+                case["input"],
+                selectors,
+                pua2base,
+                strip=options.get("strip", False),
+                merge_whitespace=options.get("merge_whitespace", True),
+            )
+        ]
+        check(
+            got == case["runs"],
+            "fixture {!r}: got {!r}, want {!r}".format(
+                case["name"], got, case["runs"]
+            ),
+        )
+
     print("nfprov: selftest OK")
     return 0
 
@@ -482,6 +583,24 @@ def build_parser():
     add_common(converter)
 
     add_common(subs.add_parser("strip", help="remove all provenance (lossy)"))
+
+    renderer = subs.add_parser(
+        "render", help="render provenance runs as HTML spans"
+    )
+    renderer.add_argument(
+        "--strip",
+        action="store_true",
+        help="omit selectors from run text (state is still reported in markup)",
+    )
+    renderer.add_argument(
+        "--no-merge-whitespace",
+        dest="merge_whitespace",
+        action="store_false",
+        default=True,
+        help="do not join a whitespace run into same-state neighbours",
+    )
+    add_common(renderer)
+
     return parser
 
 
@@ -536,6 +655,14 @@ def main(argv=None):
     elif args.command == "convert":
         result = do_convert(
             text, args.from_mode, args.to_mode, selectors, pua2base, base2pua
+        )
+    elif args.command == "render":
+        result = to_html(
+            text,
+            selectors,
+            pua2base,
+            strip=args.strip,
+            merge_whitespace=args.merge_whitespace,
         )
     else:
         sys.stderr.write(

@@ -12,6 +12,6 @@ place with a pointer to their replacement.
 | [0004](0004-shared-fixture-for-conformance.md) | accepted | One fixture file defines decorator conformance |
 | [0005](0005-serve-p-plus-as-woff2-subset.md) | proposed | Serve the P+ font as a woff2 subset for HarfBuzz browsers |
 | [0006](0006-decorator-packages-and-repository.md) | proposed | Decorator packages per ecosystem, protocol in its own repository |
-| [0007](0007-coretext-via-ccmp-ligature.md) | proposed | Reach variants under CoreText through a ccmp ligature |
+| [0007](0007-coretext-via-ccmp-ligature.md) | accepted | Reach variants under CoreText through a ccmp ligature |
 | [0008](0008-do-not-publish-pua-to-the-web.md) | proposed | Do not publish PUA-encoded text to the web |
 | [0009](0009-editor-decoration-apis.md) | proposed | Editor decoration APIs as a third consumer path |

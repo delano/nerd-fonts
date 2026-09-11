@@ -24,8 +24,25 @@ The command is `bin/scripts/subset-provenance-webfont.sh`. Tables kept:
 GDEF, OS/2, cmap, cvt, fpgm, gasp, glyf, head, hhea, hmtx, loca, maxp, name,
 post, prep.
 
+Rendering through `@font-face` was tested with headless Playwright (Chromium
+1243, WebKit 2358 / WebKit 26.5), served over http since `file://` breaks
+font loading. A page loaded the 15 KB subset and rendered the PUA-encoded and
+selector-encoded paragraphs from `example-marked.txt` and
+`example-selector.txt`, plus a canvas probe drawing `T` against `T`+VS(ai,
+U+E0101) in the subset font. `document.fonts.check()` and the loaded
+`FontFace`'s status confirmed the subset actually loaded in both engines,
+ruling out silent fallback to a system font.
+
+Chromium renders the marks: the canvas probe differs in 98 of 4096 pixels
+between `T` and `T`+VS, and every marked character in both encodings shows
+the sawtooth AI-mark underline that the unmarked control lacks. WebKit
+renders no marks: the canvas probe is pixel-identical (0 of 4096 differing
+pixels) between `T` and `T`+VS, and the marked paragraphs are visually
+indistinguishable from the unmarked control. This confirms the ADR 0007
+premise on an actual webfont: CoreText drops the format 14 selector even
+when it is delivered through `@font-face`, not only in native text views.
+
 ## Open
 
-Rendering of the subset through `@font-face` was not tested. No mobile device
-was tested. Whether the step belongs in `font-patcher` as `--webfont` or
-stays a separate script is undecided.
+No mobile device was tested. Whether the step belongs in `font-patcher` as
+`--webfont` or stays a separate script is undecided.
