@@ -558,6 +558,7 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
 | CoreText (`CTLineCreateWithAttributedString`) | Selector encoding: base glyph, selector dropped. PUA encoding: `.ai` glyph |
 | Terminal.app                      | Selectors dropped, no marks; PUA line marked            |
+| WebKit headless (Playwright)      | Font path untested. Span path (`decorator/`): marks rendered from CSS, selectors retained on copy. Same on Chromium. |
 | rio                               | Selectors dropped, no marks; PUA line marked            |
 | Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
 | VS Code editor                    | Correct: selector and PUA lines both marked             |

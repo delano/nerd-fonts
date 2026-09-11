@@ -48,5 +48,7 @@ Extend the fixture on every report.
 ## Status
 
 Two prototypes, Python and JavaScript, pass all cases in fixtures.json.
-Neither is in this repository. The fixture was generated from the Python
-prototype and checked by hand; the JavaScript prototype was then run against it.
+Both are in `prototypes/` with their fixture runners and the Chromium and
+WebKit test rig. The fixture was generated from the Python prototype and
+checked by hand; the JavaScript prototype was then run against it. Neither
+is packaged.
