@@ -29,6 +29,9 @@ cases = [
  ("strip: selectors removed, state kept", mark("fork", A), {"strip": True}),
  ("strip: pua decodes to bare base", pua("Hi"), {"strip": True}),
  ("punctuation marked, code span from sample", mark("`font-patcher --provenance`.", A), {}),
+ ("merge_whitespace off: space between equal states stays unmarked", mark("The fork", A), {"merge_whitespace": False}),
+ ("merge_whitespace off: newline between equal states stays unmarked", mark("one", A) + "\n" + mark("two", A), {"merge_whitespace": False}),
+ ("merge_whitespace off with strip: pua words split at the space", pua("Hi there"), {"strip": True, "merge_whitespace": False}),
 ]
 out = []
 for name, text, opts in cases:

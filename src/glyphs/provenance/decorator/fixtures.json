@@ -251,6 +251,70 @@
      "text": "`\udb40\udd01f\udb40\udd01o\udb40\udd01n\udb40\udd01t\udb40\udd01-\udb40\udd01p\udb40\udd01a\udb40\udd01t\udb40\udd01c\udb40\udd01h\udb40\udd01e\udb40\udd01r\udb40\udd01 -\udb40\udd01-\udb40\udd01p\udb40\udd01r\udb40\udd01o\udb40\udd01v\udb40\udd01e\udb40\udd01n\udb40\udd01a\udb40\udd01n\udb40\udd01c\udb40\udd01e\udb40\udd01`\udb40\udd01.\udb40\udd01"
     }
    ]
+  },
+  {
+   "name": "merge_whitespace off: space between equal states stays unmarked",
+   "input": "T\udb40\udd01h\udb40\udd01e\udb40\udd01 f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01",
+   "options": {
+    "merge_whitespace": false
+   },
+   "runs": [
+    {
+     "state": "ai",
+     "text": "T\udb40\udd01h\udb40\udd01e\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": " "
+    },
+    {
+     "state": "ai",
+     "text": "f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "merge_whitespace off: newline between equal states stays unmarked",
+   "input": "o\udb40\udd01n\udb40\udd01e\udb40\udd01\nt\udb40\udd01w\udb40\udd01o\udb40\udd01",
+   "options": {
+    "merge_whitespace": false
+   },
+   "runs": [
+    {
+     "state": "ai",
+     "text": "o\udb40\udd01n\udb40\udd01e\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": "\n"
+    },
+    {
+     "state": "ai",
+     "text": "t\udb40\udd01w\udb40\udd01o\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "merge_whitespace off with strip: pua words split at the space",
+   "input": "\udbc0\udc48\udbc0\udc69 \udbc0\udc74\udbc0\udc68\udbc0\udc65\udbc0\udc72\udbc0\udc65",
+   "options": {
+    "strip": true,
+    "merge_whitespace": false
+   },
+   "runs": [
+    {
+     "state": "ai",
+     "text": "Hi"
+    },
+    {
+     "state": null,
+     "text": " "
+    },
+    {
+     "state": "ai",
+     "text": "there"
+    }
+   ]
   }
  ]
 }
