@@ -32,6 +32,7 @@ cases = [
  ("merge_whitespace off: space between equal states stays unmarked", mark("The fork", A), {"merge_whitespace": False}),
  ("merge_whitespace off: newline between equal states stays unmarked", mark("one", A) + "\n" + mark("two", A), {"merge_whitespace": False}),
  ("merge_whitespace off with strip: pua words split at the space", pua("Hi there"), {"strip": True, "merge_whitespace": False}),
+ ("pua code points outside the mapping pass through unmarked", "\U00104E2D\U00100020\U0010000A" + pua("x"), {}),
 ]
 out = []
 for name, text, opts in cases:

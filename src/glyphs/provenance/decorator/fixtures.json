@@ -315,6 +315,21 @@
      "text": "there"
     }
    ]
+  },
+  {
+   "name": "pua code points outside the mapping pass through unmarked",
+   "input": "\udbd3\ude2d\udbc0\udc20\udbc0\udc0a\udbc0\udc78",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "\udbd3\ude2d\udbc0\udc20\udbc0\udc0a"
+    },
+    {
+     "state": "ai",
+     "text": "x\udb40\udd01"
+    }
+   ]
   }
  ]
 }

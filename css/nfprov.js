@@ -25,8 +25,22 @@
 (function (global) {
   'use strict';
 
-  var VS = { 0xE0100: 'human', 0xE0101: 'ai', 0xE0102: 'unknown', 0xE0103: 'edited', 0xE0104: 'mixed' };
-  var PUA_AI = 0x100000; // ai plane: U+100000 + base (mapping.json v1)
+  // Tables from mapping.json. The registry is not loaded at runtime; these
+  // constants are checked against it by decorator/check_fixtures.mjs.
+  var MAPPING_VERSION = 1;
+  var SELECTORS = { human: 0xE0100, ai: 0xE0101, unknown: 0xE0102, edited: 0xE0103, mixed: 0xE0104 };
+  var PUA_AI = 0x100000; // ai plane: PUA_AI(cp) = 0x100000 + cp
+  // Allocated PUA code points, inclusive ranges. Anything else in the plane is
+  // not a mark. v1: U+0021-U+00FF minus Zs, Cc, Cf; every entry is state ai.
+  var PUA_RANGES = [[0x100021, 0x10007E], [0x1000A1, 0x1000AC], [0x1000AE, 0x1000FF]];
+  var VS = {};
+  for (var selName in SELECTORS) VS[SELECTORS[selName]] = selName;
+  function inPua(cp) {
+    for (var i = 0; i < PUA_RANGES.length; i++) {
+      if (cp >= PUA_RANGES[i][0] && cp <= PUA_RANGES[i][1]) return true;
+    }
+    return false;
+  }
   var seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
   function resolveOptions(opts) {
@@ -55,10 +69,10 @@
       if (VS[last] !== undefined && cps.length > 1) {
         state = VS[last];
         if (o.strip) out = cps.slice(0, -1).join('');
-      } else if (cps.length === 1 && cp0 >= PUA_AI && cp0 <= 0x10FFFF) {
+      } else if (cps.length === 1 && inPua(cp0)) {
         state = 'ai';
         // PUA is unreadable without the font; re-emit as base + selector encoding.
-        out = String.fromCodePoint(cp0 - PUA_AI) + (o.strip ? '' : String.fromCodePoint(0xE0101));
+        out = String.fromCodePoint(cp0 - PUA_AI) + (o.strip ? '' : String.fromCodePoint(SELECTORS.ai));
       } else if (/^\s+$/.test(segment)) {
         state = 'ws';
       }
