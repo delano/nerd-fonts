@@ -29,9 +29,22 @@ The new repository would contain the protocol and code used to consume it:
 - Protocol documentation that is not specific to the font fork:
   `DECORATOR.md`, `HTML-RENDERING.md`, `GOAL.md`, and ADRs 0001–0009.
 
-Each published package would vendor a copy of `mapping.json`; packages would
-not depend on one another. The source registry and fixture would remain in the
-new repository.
+Each published package would vendor the registry; packages would not depend
+on one another. The source registry and fixture would remain in the new
+repository.
+
+"Vendor" means different things per host. A browser script cannot load a
+JSON file at runtime, so the JavaScript decorator embeds the tables the
+registry reduces to: the selector table, the allocated PUA ranges, and the
+mapping version. It exposes them as `nfprov.mapping`, and the fixture runner
+compares them to `mapping.json` on every run (decided 2026-09-11; before
+this, `css/nfprov.js` treated every plane-16 code point as a mark). The
+embedding relies on two rules from `../README.md`: `PUA_AI(cp) = 0x100000 +
+cp`, and published entries are never reassigned or removed. The runner also
+asserts those rules hold for every entry. A server-side package may read the
+file or embed it the same way; either way its runner must check the copy
+against the source registry. The registry file itself does not ship inside
+the browser script.
 
 This font fork would keep the work that builds or verifies fonts:
 

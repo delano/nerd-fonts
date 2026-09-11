@@ -9,7 +9,7 @@ dependency of the font build.
 | --- | --- |
 | `nfprov.js` | Earlier client-side implementation. It uses `Intl.Segmenter`, detects runs, and wraps them in spans. |
 | `nfprov_html.py` | Earlier server-side implementation. It reuses `cluster_end` from `bin/scripts/nfprov.py` and reads `../mapping.json`. |
-| `check_fixtures.mjs`, `check_fixtures.py` | Fixture runners for these prototype implementations. They exit non-zero when a case fails and skip cases that set `merge_whitespace`, which the prototypes predate. The shipped `css/nfprov.js` is checked by `../check_fixtures.mjs`; the shipped Python by `nfprov.py --selftest`. |
+| `check_fixtures.mjs`, `check_fixtures.py` | Fixture runners for these prototype implementations. They exit non-zero when a case fails and skip cases that set `merge_whitespace`, which the prototypes predate. The JavaScript runner also skips one known gap: the prototype marks every plane-16 code point, not only those in `mapping.json`. The shipped `css/nfprov.js` is checked by `../check_fixtures.mjs`; the shipped Python by `nfprov.py --selftest`. |
 | `gen_fixtures.py` | Generates `../fixtures.json` from `bin/scripts/nfprov.py`. Run only to add cases; the fixture is checked by hand and never edited to fit an implementation. |
 | `build_page.py` | Writes `test.html` from `example-selector.txt` and `../../example-marked.txt`. |
 | `test.html` | Four sections: raw selector text, Python spans, JS spans on selector text, JS spans on PUA text. Inline CSS: sawtooth underline for `ai`, dashed for `unknown`. |
@@ -31,9 +31,10 @@ environment.
 
 ## Results, 2026-09-11
 
-Both prototype fixture runners: 18/18 of the original cases. The three
-`merge_whitespace` cases added later are skipped here and pass against the
-shipped implementations (21/21).
+Both prototype fixture runners: 18/18 of the original cases. The cases added
+later (`merge_whitespace`, PUA outside the mapping) are skipped where the
+prototype does not implement them and pass against the shipped
+implementations (22/22).
 
 `run.mjs`, Chromium 1243 and WebKit 2358 (WebKit 26.5), 420 px viewport at
 2x, system font:
