@@ -1,0 +1,255 @@
+{
+ "mapping_version": 1,
+ "cases": [
+  {
+   "name": "plain text, no marks",
+   "input": "The fork adds",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "The fork adds"
+    }
+   ]
+  },
+  {
+   "name": "one ai word",
+   "input": "f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "ai words joined across a space",
+   "input": "T\udb40\udd01h\udb40\udd01e\udb40\udd01 f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "T\udb40\udd01h\udb40\udd01e\udb40\udd01 f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "ai then human, space between stays unmarked",
+   "input": "T\udb40\udd01h\udb40\udd01e\udb40\udd01 f\udb40\udd00o\udb40\udd00r\udb40\udd00k\udb40\udd00",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "T\udb40\udd01h\udb40\udd01e\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": " "
+    },
+    {
+     "state": "human",
+     "text": "f\udb40\udd00o\udb40\udd00r\udb40\udd00k\udb40\udd00"
+    }
+   ]
+  },
+  {
+   "name": "human-edited first letter inside an ai word",
+   "input": "Th\udb40\udd01e\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "T"
+    },
+    {
+     "state": "ai",
+     "text": "h\udb40\udd01e\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "unmarked text before and after a run",
+   "input": "The f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01 adds",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "The "
+    },
+    {
+     "state": "ai",
+     "text": "f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": " adds"
+    }
+   ]
+  },
+  {
+   "name": "unknown, edited, mixed states",
+   "input": "a\udb40\udd02b\udb40\udd03c\udb40\udd04",
+   "options": {},
+   "runs": [
+    {
+     "state": "unknown",
+     "text": "a\udb40\udd02"
+    },
+    {
+     "state": "edited",
+     "text": "b\udb40\udd03"
+    },
+    {
+     "state": "mixed",
+     "text": "c\udb40\udd04"
+    }
+   ]
+  },
+  {
+   "name": "combining mark: selector follows the whole cluster",
+   "input": "e\u0301\udb40\udd01x\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "e\u0301\udb40\udd01x\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "emoji zwj sequence: selector follows the whole cluster",
+   "input": "\ud83d\udc69\u200d\ud83d\udcbb\udb40\udd01 ok",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "\ud83d\udc69\u200d\ud83d\udcbb\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": " ok"
+    }
+   ]
+  },
+  {
+   "name": "pua input decodes to base plus ai selector",
+   "input": "\udbc0\udc48\udbc0\udc69",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "H\udb40\udd01i\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "pua and selector encodings in one string",
+   "input": "\udbc0\udc48\udbc0\udc69 t\udb40\udd01h\udb40\udd01e\udb40\udd01r\udb40\udd01e\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "H\udb40\udd01i\udb40\udd01 t\udb40\udd01h\udb40\udd01e\udb40\udd01r\udb40\udd01e\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "orphan selector with no base passes through unmarked",
+   "input": "\udb40\udd01x",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "\udb40\udd01x"
+    }
+   ]
+  },
+  {
+   "name": "leading and trailing whitespace",
+   "input": "  a\udb40\udd01i\udb40\udd01  ",
+   "options": {},
+   "runs": [
+    {
+     "state": null,
+     "text": "  "
+    },
+    {
+     "state": "ai",
+     "text": "a\udb40\udd01i\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": "  "
+    }
+   ]
+  },
+  {
+   "name": "newline is whitespace and joins equal states",
+   "input": "o\udb40\udd01n\udb40\udd01e\udb40\udd01\nt\udb40\udd01w\udb40\udd01o\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "o\udb40\udd01n\udb40\udd01e\udb40\udd01\nt\udb40\udd01w\udb40\udd01o\udb40\udd01"
+    }
+   ]
+  },
+  {
+   "name": "tab between different states",
+   "input": "a\udb40\udd01\tb\udb40\udd00",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "a\udb40\udd01"
+    },
+    {
+     "state": null,
+     "text": "\t"
+    },
+    {
+     "state": "human",
+     "text": "b\udb40\udd00"
+    }
+   ]
+  },
+  {
+   "name": "strip: selectors removed, state kept",
+   "input": "f\udb40\udd01o\udb40\udd01r\udb40\udd01k\udb40\udd01",
+   "options": {
+    "strip": true
+   },
+   "runs": [
+    {
+     "state": "ai",
+     "text": "fork"
+    }
+   ]
+  },
+  {
+   "name": "strip: pua decodes to bare base",
+   "input": "\udbc0\udc48\udbc0\udc69",
+   "options": {
+    "strip": true
+   },
+   "runs": [
+    {
+     "state": "ai",
+     "text": "Hi"
+    }
+   ]
+  },
+  {
+   "name": "punctuation marked, code span from sample",
+   "input": "`\udb40\udd01f\udb40\udd01o\udb40\udd01n\udb40\udd01t\udb40\udd01-\udb40\udd01p\udb40\udd01a\udb40\udd01t\udb40\udd01c\udb40\udd01h\udb40\udd01e\udb40\udd01r\udb40\udd01 -\udb40\udd01-\udb40\udd01p\udb40\udd01r\udb40\udd01o\udb40\udd01v\udb40\udd01e\udb40\udd01n\udb40\udd01a\udb40\udd01n\udb40\udd01c\udb40\udd01e\udb40\udd01`\udb40\udd01.\udb40\udd01",
+   "options": {},
+   "runs": [
+    {
+     "state": "ai",
+     "text": "`\udb40\udd01f\udb40\udd01o\udb40\udd01n\udb40\udd01t\udb40\udd01-\udb40\udd01p\udb40\udd01a\udb40\udd01t\udb40\udd01c\udb40\udd01h\udb40\udd01e\udb40\udd01r\udb40\udd01 -\udb40\udd01-\udb40\udd01p\udb40\udd01r\udb40\udd01o\udb40\udd01v\udb40\udd01e\udb40\udd01n\udb40\udd01a\udb40\udd01n\udb40\udd01c\udb40\udd01e\udb40\udd01`\udb40\udd01.\udb40\udd01"
+    }
+   ]
+  }
+ ]
+}
