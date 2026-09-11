@@ -16,8 +16,10 @@
  *# Options (all optional, passed to both runs() and render()):
  *#   strip           default false  Remove selectors from run text; state is
  *#                                  still reported via data-prov.
- *#   mergeWhitespace default true   Whitespace between two runs of the same
- *#                                  state joins them into one run.
+ *#   merge_whitespace default true  Whitespace between two runs of the same
+ *#                                  state joins them into one run. This is the
+ *#                                  contract spelling; mergeWhitespace is an
+ *#                                  accepted alias.
  *#   prefix          default "prov" Class prefix, e.g. "prov" -> "prov prov-STATE".
  */
 (function (global) {
@@ -29,9 +31,10 @@
 
   function resolveOptions(opts) {
     opts = opts || {};
+    var merge = opts.merge_whitespace !== undefined ? opts.merge_whitespace : opts.mergeWhitespace;
     return {
       strip: !!opts.strip,
-      mergeWhitespace: opts.mergeWhitespace !== false,
+      mergeWhitespace: merge !== false,
       prefix: typeof opts.prefix === 'string' && opts.prefix.length ? opts.prefix : 'prov'
     };
   }
