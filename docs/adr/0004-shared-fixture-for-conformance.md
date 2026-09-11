@@ -18,7 +18,15 @@ edited to fit an implementation.
 
 The fixture was generated from the Python prototype and checked by hand. The
 JavaScript prototype, written independently with `Intl.Segmenter`, passes all
-18 cases.
+18 original cases.
+
+Three `merge_whitespace: false` cases were added on 2026-09-11, generated
+from the shipped `bin/scripts/nfprov.py`. They exposed that the shipped
+`css/nfprov.js` read only `mergeWhitespace`, so the earlier 18/18 result
+had not exercised that option. The fixture now carries `contract_version`
+and runners compare both versions against the implementation. The shipped
+JavaScript has its own runner, `decorator/check_fixtures.mjs`; the
+prototype runners test only the prototypes.
 
 ## Consequences
 
