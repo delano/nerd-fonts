@@ -49,7 +49,7 @@ did not happen.
 
 ## Open
 
-Productionise this in `nfprov.py`/`font-patcher`:
+Operationalize this in `nfprov.py`/`font-patcher`:
 
 - Generate the five selector glyphs and the ccmp lookups at patch time from
   the uvsDict `font-patcher` already writes, instead of the one-off script
