@@ -1,7 +1,12 @@
+"""Generates ../fixtures.json from bin/scripts/nfprov.py, the shipped Python
+decoder. Usage: .venv/bin/python gen_fixtures.py ../fixtures.json
+Check the printed runs by hand before committing the result."""
 import json, sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import nfprov_html as N
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, '..', '..', '..', '..', '..', 'bin', 'scripts'))
+import nfprov as N
+MAP, SELECTORS, PUA2BASE, _ = N.load_mapping(os.path.join(HERE, '..', 'mapping.json'))
 H, A, U, E, M = '\U000E0100', '\U000E0101', '\U000E0102', '\U000E0103', '\U000E0104'
 def mark(s, sel): return ''.join(c + sel if not c.isspace() else c for c in s)
 def pua(s): return ''.join(chr(0x100000 + ord(c)) if not c.isspace() else c for c in s)
@@ -27,7 +32,7 @@ cases = [
 ]
 out = []
 for name, text, opts in cases:
-    runs = N.runs(text, strip=opts.get("strip", False))
+    runs = N.do_runs(text, SELECTORS, PUA2BASE, strip=opts.get("strip", False), merge_whitespace=opts.get("merge_whitespace", True))
     out.append({"name": name, "input": text, "options": opts, "runs": [{"state": s, "text": t} for s, t in runs]})
-json.dump({"mapping_version": N.MAP["version"], "cases": out}, open(sys.argv[1], "w"), ensure_ascii=True, indent=1)
+json.dump({"contract_version": N.CONTRACT_VERSION, "mapping_version": MAP["version"], "cases": out}, open(sys.argv[1], "w"), ensure_ascii=True, indent=1)
 for c in out: print(c["name"], "->", [(r["state"], r["text"]) for r in c["runs"]])

@@ -69,13 +69,16 @@ Run server-side passes on rendered HTML text nodes, not on markdown source.
 `fixtures.json` has the shape
 
 ```json
-{ "mapping_version": 1,
+{ "contract_version": 1,
+  "mapping_version": 1,
   "cases": [ { "name": "...", "input": "...", "options": {}, "runs": [ { "state": "ai", "text": "..." } ] } ] }
 ```
 
-`state` is a string from `variation_selectors` or `null`. An implementation
-conforms when, for every case, `runs(input, options)` equals `runs` exactly.
-Strings are stored with ASCII escapes; compare code points, not bytes.
+`state` is a string from `variation_selectors` or `null`. `options` uses the
+option names in this document. An implementation conforms when, for every
+case, `runs(input, options)` equals `runs` exactly, and when the two versions
+it implements equal `contract_version` and `mapping_version`. Strings are
+stored with ASCII escapes; compare code points, not bytes.
 
 ## Versioning
 

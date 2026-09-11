@@ -46,6 +46,7 @@ FIXTURES_PATH = os.path.join(
 )
 
 PROG = "nfprov"
+CONTRACT_VERSION = 1  # src/glyphs/provenance/decorator/DECORATOR.md
 GENERATED_STATES = ("human", "ai", "unknown")
 RESERVED_STATES = ("edited", "mixed")
 
@@ -409,7 +410,7 @@ def check(condition, message):
 
 def selftest():
     """Round-trip the reference example through mark/convert/strip."""
-    _, selectors, pua2base, base2pua = load_mapping()
+    mapping, selectors, pua2base, base2pua = load_mapping()
     ai, human = chr(selectors["ai"]), chr(selectors["human"])
 
     def mark(text, state="ai", mode="vs"):
@@ -511,6 +512,18 @@ def selftest():
     # decorator contract conformance: runs() must match every fixtures.json case
     with open(FIXTURES_PATH, encoding="utf-8") as handle:
         fixtures = json.load(handle)
+    check(
+        fixtures.get("contract_version") == CONTRACT_VERSION,
+        "fixtures.json contract_version {!r} != implemented {!r}".format(
+            fixtures.get("contract_version"), CONTRACT_VERSION
+        ),
+    )
+    check(
+        fixtures.get("mapping_version") == mapping["version"],
+        "fixtures.json mapping_version {!r} != mapping.json {!r}".format(
+            fixtures.get("mapping_version"), mapping["version"]
+        ),
+    )
     for case in fixtures["cases"]:
         options = case["options"]
         got = [
