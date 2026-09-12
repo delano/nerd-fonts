@@ -11,11 +11,13 @@
 #     nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
 #     nfprov.py convert --from=vs|pua --to=vs|pua FILE
 #     nfprov.py strip FILE
+#     nfprov.py render [--strip] [--no-merge-whitespace] FILE
 #     nfprov.py --selftest
 #
 #     FILE may be '-' for stdin. Output goes to stdout unless -o/--output.
 
 import argparse
+import html
 import io
 import json
 import os
@@ -32,7 +34,19 @@ MAPPING_PATH = os.path.join(
     "mapping.json",
 )
 
+FIXTURES_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "..",
+    "src",
+    "glyphs",
+    "provenance",
+    "decorator",
+    "fixtures.json",
+)
+
 PROG = "nfprov"
+CONTRACT_VERSION = 1  # src/glyphs/provenance/decorator/DECORATOR.md
 GENERATED_STATES = ("human", "ai", "unknown")
 RESERVED_STATES = ("edited", "mixed")
 
@@ -292,6 +306,72 @@ def do_strip(text, selectors, pua2base):
     return "".join(out)
 
 
+def do_runs(text, selectors, pua2base, strip=False, merge_whitespace=True):
+    """Split `text` into an ordered list of (state, text) runs.
+
+    Implements the decorator contract in
+    src/glyphs/provenance/decorator/DECORATOR.md version 1. `state` is a
+    selector name from mapping.json's variation_selectors, or None.
+    """
+    sel_cps = set(selectors.values())
+    sel2name = {cp: name for name, cp in selectors.items()}
+    chars = list(text)
+    items = []
+    index = 0
+    while index < len(chars):
+        cp = ord(chars[index])
+        if cp in pua2base:
+            base_cp, state = pua2base[cp]
+            out = chr(base_cp) if strip else chr(base_cp) + chr(selectors[state])
+            index += 1
+        elif chars[index].isspace():
+            state = "ws"
+            out = chars[index]
+            index += 1
+        else:
+            end = cluster_end(chars, index, sel_cps)
+            cluster = "".join(chars[index:end])
+            state, out, index = None, cluster, end
+            if index < len(chars) and ord(chars[index]) in sel_cps:
+                state = sel2name[ord(chars[index])]
+                if not strip:
+                    out += chars[index]
+                index += 1
+        if items and items[-1][0] == state:
+            items[-1][1] += out
+        else:
+            items.append([state, out])
+
+    merged = []
+    for position, (state, out) in enumerate(items):
+        following = items[position + 1][0] if position + 1 < len(items) else None
+        if merge_whitespace and state == "ws" and merged and merged[-1][0] and merged[-1][0] == following:
+            merged[-1][1] += out
+            continue
+        if state == "ws":
+            state = None
+        if merged and merged[-1][0] == state:
+            merged[-1][1] += out
+        else:
+            merged.append([state, out])
+    return [(state, out) for state, out in merged]
+
+
+def to_html(text, selectors, pua2base, strip=False, merge_whitespace=True, class_prefix="prov"):
+    """Render `text` as HTML spans per the decorator contract's Markup section."""
+    parts = []
+    for state, out in do_runs(text, selectors, pua2base, strip, merge_whitespace):
+        escaped = html.escape(out)
+        if state:
+            parts.append(
+                f'<span class="{class_prefix} {class_prefix}-{state}" '
+                f'data-prov="{state}">{escaped}</span>'
+            )
+        else:
+            parts.append(escaped)
+    return "".join(parts)
+
+
 # --- CLI -------------------------------------------------------------------
 
 
@@ -330,7 +410,7 @@ def check(condition, message):
 
 def selftest():
     """Round-trip the reference example through mark/convert/strip."""
-    _, selectors, pua2base, base2pua = load_mapping()
+    mapping, selectors, pua2base, base2pua = load_mapping()
     ai, human = chr(selectors["ai"]), chr(selectors["human"])
 
     def mark(text, state="ai", mode="vs"):
@@ -429,6 +509,139 @@ def selftest():
         "PUA mode diff-aware mark failed"
     )
 
+    # --- cluster_end (shared core; moves with the decoder per ADR 0006) ---
+    sel_cps = set(selectors.values())
+
+    def cluster(text, start=0):
+        return cluster_end(list(text), start, sel_cps)
+
+    check(cluster("abc") == 1, "ASCII: one code point per cluster")
+    check(cluster("abc", 1) == 2, "ASCII: start offset respected")
+    check(cluster("e\u0301x") == 2, "base + combining mark")
+    check(cluster("e\u0301\u0302x") == 3, "base + two combining marks")
+    check(cluster(family + "x") == 5, "ZWJ sequence: ZWJ and joined char stay")
+    check(cluster(family) == 5, "ZWJ sequence at end of text")
+    check(cluster(tone + "x") == 2, "skin-tone modifier stays with base")
+    check(cluster(flag + "\U0001f1e8") == 2, "regional pair: exactly two")
+    check(cluster("\U0001f1e8x") == 1, "lone regional indicator: no pair")
+    check(cluster("\u2764\ufe0fx") == 2, "VS16 stays with base")
+    check(cluster("\u2764\ufe0ex") == 2, "VS15 stays with base")
+    check(cluster(ai + "x") == 1, "lone provenance selector: own cluster")
+    check(cluster("\ufe0fx") == 1, "lone VS16: own cluster")
+    check(cluster("a" + ai + "b") == 1, "provenance selector ends the cluster")
+    check(
+        cluster("e\u0301" + ai + "b") == 2,
+        "provenance selector ends the cluster after combining marks",
+    )
+    check(
+        cluster(family + ai + "b") == 5,
+        "provenance selector ends the cluster after a ZWJ sequence",
+    )
+    check(is_combining("\u0301"), "U+0301 is combining")
+    check(not is_combining("a"), "ASCII letter is not combining")
+
+    # --- to_html (renderer; moves with the decoder per ADR 0006) ---
+    def render(text, **options):
+        return to_html(text, selectors, pua2base, **options)
+
+    def span(state, text, prefix="prov"):
+        return (
+            f'<span class="{prefix} {prefix}-{state}" '
+            f'data-prov="{state}">{text}</span>'
+        )
+
+    check(render("") == "", "empty input renders empty")
+    check(render("plain") == "plain", "unmarked text is emitted bare")
+    check(render("a" + ai) == span("ai", "a" + ai), "span shape")
+    check(
+        render("<&\"") == "&lt;&amp;&quot;", "escape < & \" in unmarked run"
+    )
+    check(
+        render("<" + ai + "&" + ai + "\"" + ai)
+        == span("ai", "&lt;" + ai + "&amp;" + ai + "&quot;" + ai),
+        "escape < & \" inside a marked run",
+    )
+    check(
+        render("a" + ai + "<b>" + human + " & x")
+        == span("ai", "a" + ai) + "&lt;b" + span("human", "&gt;" + human) + " &amp; x",
+        "mixed marked/unmarked runs escape independently",
+    )
+    check(
+        render("a" + ai, class_prefix="x") == span("ai", "a" + ai, prefix="x"),
+        "custom class_prefix changes classes only",
+    )
+    check(
+        'data-prov="ai"' in render("a" + ai, class_prefix="x"),
+        "custom class_prefix must not touch data-prov",
+    )
+    check(
+        render("a" + ai + " b" + ai) == span("ai", "a" + ai + " b" + ai),
+        "merge_whitespace default joins same-state neighbours",
+    )
+    check(
+        render("a" + ai + " b" + ai, merge_whitespace=False)
+        == span("ai", "a" + ai) + " " + span("ai", "b" + ai),
+        "merge_whitespace=False keeps whitespace bare",
+    )
+    check(
+        render("a" + ai + " b" + ai, strip=True) == span("ai", "a b"),
+        "strip=True drops selectors but keeps the state",
+    )
+    pua_cp, (pua_base, pua_state) = next(
+        (cp, entry) for cp, entry in pua2base.items() if entry[1] == "ai"
+    )
+    check(
+        render(chr(pua_cp)) == span("ai", chr(pua_base) + ai),
+        "PUA input decodes to base + selector",
+    )
+    check(
+        render(chr(pua_cp), strip=True) == span("ai", chr(pua_base)),
+        "PUA input with strip decodes to base only",
+    )
+    check(pua_state == "ai", "PUA sample entry must be an ai entry")
+    roundtrip = "x<y" + ai + " & " + family + human + "\n\"z\""
+    rendered = render(roundtrip)
+    for tag in (span("ai", ""), span("human", "")):
+        rendered = rendered.replace(tag[: -len("</span>")], "")
+    check(
+        html.unescape(rendered.replace("</span>", "")) == roundtrip,
+        "unescaped span text must reproduce the input without strip/PUA",
+    )
+
+    # decorator contract conformance: runs() must match every fixtures.json case
+    with open(FIXTURES_PATH, encoding="utf-8") as handle:
+        fixtures = json.load(handle)
+    check(
+        fixtures.get("contract_version") == CONTRACT_VERSION,
+        "fixtures.json contract_version {!r} != implemented {!r}".format(
+            fixtures.get("contract_version"), CONTRACT_VERSION
+        ),
+    )
+    check(
+        fixtures.get("mapping_version") == mapping["version"],
+        "fixtures.json mapping_version {!r} != mapping.json {!r}".format(
+            fixtures.get("mapping_version"), mapping["version"]
+        ),
+    )
+    for case in fixtures["cases"]:
+        options = case["options"]
+        got = [
+            {"state": state, "text": run_text}
+            for state, run_text in do_runs(
+                case["input"],
+                selectors,
+                pua2base,
+                strip=options.get("strip", False),
+                merge_whitespace=options.get("merge_whitespace", True),
+            )
+        ]
+        check(
+            got == case["runs"],
+            "fixture {!r}: got {!r}, want {!r}".format(
+                case["name"], got, case["runs"]
+            ),
+        )
+
     print("nfprov: selftest OK")
     return 0
 
@@ -482,6 +695,24 @@ def build_parser():
     add_common(converter)
 
     add_common(subs.add_parser("strip", help="remove all provenance (lossy)"))
+
+    renderer = subs.add_parser(
+        "render", help="render provenance runs as HTML spans"
+    )
+    renderer.add_argument(
+        "--strip",
+        action="store_true",
+        help="omit selectors from run text (state is still reported in markup)",
+    )
+    renderer.add_argument(
+        "--no-merge-whitespace",
+        dest="merge_whitespace",
+        action="store_false",
+        default=True,
+        help="do not join a whitespace run into same-state neighbours",
+    )
+    add_common(renderer)
+
     return parser
 
 
@@ -536,6 +767,14 @@ def main(argv=None):
     elif args.command == "convert":
         result = do_convert(
             text, args.from_mode, args.to_mode, selectors, pua2base, base2pua
+        )
+    elif args.command == "render":
+        result = to_html(
+            text,
+            selectors,
+            pua2base,
+            strip=args.strip,
+            merge_whitespace=args.merge_whitespace,
         )
     else:
         sys.stderr.write(

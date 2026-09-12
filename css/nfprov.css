@@ -1,0 +1,91 @@
+/*
+ *# [Nerd Fonts]  Website: https://www.nerdfonts.com
+ *# [Nerd Fonts]  Development Website: https://github.com/ryanoasis/nerd-fonts
+ *# [Nerd Fonts]  nfprov.css: provenance decorator styles
+ *# [Nerd Fonts]  Decorator contract version: 1 (see src/glyphs/provenance/decorator/DECORATOR.md)
+ *# [Nerd Fonts]  Mapping version: 1 (see src/glyphs/provenance/mapping.json)
+ *#
+ *# Pairs with nfprov.js. Not part of the decorator contract (DECORATOR.md
+ *# "Not specified: Visual style") but reproduces the P+ font's own marks so a
+ *# page looks the same with or without the font installed:
+ *#
+ *#   ai      sawtooth/wavy underline  -- matches the P+ glyph's AI mark.
+ *#   unknown flat solid underline     -- matches the P+ glyph's unknown mark.
+ *#   human   no underline, faint tint -- the "nothing to flag" state; a tint
+ *#                                       keeps it discoverable via data-prov
+ *#                                       without implying a warning.
+ *#   edited  dotted underline         -- sits between human and ai/unknown:
+ *#                                       a person touched machine (or vice
+ *#                                       versa) content, so a broken but
+ *#                                       plain line rather than a solid or
+ *#                                       wavy one.
+ *#   mixed   double underline         -- more than one state contributed;
+ *#                                       "double" reads as "more than one"
+ *#                                       without borrowing ai's wave or
+ *#                                       unknown's solid bar.
+ *#
+ *# Colors are custom properties on :root so integrators can retheme without
+ *# forking this file; a prefers-color-scheme: dark override is included.
+ *# Marks never change layout: no border, padding, margin, or line-height is
+ *# set, only background/text-decoration, and text-decoration-skip-ink is
+ *# disabled so the underlines stay continuous under descenders.
+ */
+
+:root {
+  --nfprov-human-bg: rgba(46, 160, 67, 0.12);
+  --nfprov-human-line: #2ea043;
+  --nfprov-ai-bg: rgba(199, 125, 0, 0.12);
+  --nfprov-ai-line: #c77d00;
+  --nfprov-unknown-bg: rgba(110, 118, 129, 0.12);
+  --nfprov-unknown-line: #6e7681;
+  --nfprov-edited-bg: rgba(31, 111, 235, 0.1);
+  --nfprov-edited-line: #1f6feb;
+  --nfprov-mixed-bg: rgba(163, 71, 186, 0.12);
+  --nfprov-mixed-line: #a347ba;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nfprov-human-bg: rgba(63, 185, 80, 0.16);
+    --nfprov-human-line: #3fb950;
+    --nfprov-ai-bg: rgba(227, 152, 33, 0.16);
+    --nfprov-ai-line: #e39821;
+    --nfprov-unknown-bg: rgba(139, 148, 158, 0.16);
+    --nfprov-unknown-line: #8b949e;
+    --nfprov-edited-bg: rgba(88, 166, 255, 0.16);
+    --nfprov-edited-line: #58a6ff;
+    --nfprov-mixed-bg: rgba(219, 97, 246, 0.16);
+    --nfprov-mixed-line: #db61f6;
+  }
+}
+
+.prov {
+  /* No border/padding/margin/line-height: marks must not affect layout. */
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.15em;
+}
+
+.prov-human {
+  background: var(--nfprov-human-bg);
+}
+
+.prov-ai {
+  background: var(--nfprov-ai-bg);
+  text-decoration: underline wavy var(--nfprov-ai-line);
+}
+
+.prov-unknown {
+  background: var(--nfprov-unknown-bg);
+  text-decoration: underline solid var(--nfprov-unknown-line);
+  text-decoration-thickness: 0.15em;
+}
+
+.prov-edited {
+  background: var(--nfprov-edited-bg);
+  text-decoration: underline dotted var(--nfprov-edited-line);
+}
+
+.prov-mixed {
+  background: var(--nfprov-mixed-bg);
+  text-decoration: underline double var(--nfprov-mixed-line);
+}

@@ -17,6 +17,35 @@ Fonts". This README covers only how it is wired into this repository.
 Acceptance criteria (must have, may have, non-goals) and the approaches they
 rule out are in [CRITERIA.md](CRITERIA.md).
 
+## Background: what Nerd Fonts is
+
+Nerd Fonts descends from earlier font-patching work; its `font-patcher` is a
+direct descendant of vim-powerline's fontpatcher script. It takes existing
+programming fonts and adds thousands of icons from projects such as Font
+Awesome, Devicons, Octicons, and Powerline, placing them at consistent code
+points so that terminals, shell prompts, and editors can code against known
+positions.
+
+Those code points are mostly in Unicode's Private Use Areas. This is a de facto
+convention rather than a standard — the PUA is by definition unstandardised, and
+the mapping holds because of adoption, not because Unicode assigns it. Where an
+upstream set already had established positions, Nerd Fonts preserves them
+(Powerline keeps U+E0A0–U+E0D4, for example); the rest are relocated into free
+space. Not every patched glyph is PUA, and scale has pushed the collection past
+Plane 0: Material Design Icons alone is roughly seven thousand glyphs and lives
+in Supplementary Private Use Area-A at U+F0001–U+F1AF0.
+
+The result is a single font that renders both code and the icons those tools
+want, which removes the dependence on fallback fonts and the missing-glyph boxes
+that come with it. Nerd Fonts' main contribution is not glyph injection itself —
+that predates it — but aggregating many icon sets at scale behind a consistent
+mapping, and shipping a patcher that reproduces that mapping for any font.
+
+Provenance marking, described below, is a different kind of patch: it adds no
+icons and copies nothing from a symbol font. It derives variants from the base
+font's own glyphs, so the considerations that govern the icon sets — collision
+avoidance, code-point allocation across planes — apply to it only in part.
+
 ## Behaviour
 
 A provenance-aware patched font renders marked text with variants derived from
@@ -44,7 +73,7 @@ In this directory:
 Related scripts:
 
 - `bin/scripts/nfprov.py` (listed as `[4]` in `bin/scripts/README.md`):
-  standard-library-only reference encoder and decoder for marked text.
+  standard-library-only encoder, decoder, and HTML renderer for marked text.
 - `bin/scripts/test-provenance.py` (listed as `[9]`): `fontTools`-based CI
   validator for patched fonts.
 - `bin/scripts/generate-provenance-example.sh` (listed as `[4]`): patches a
@@ -293,15 +322,23 @@ nfprov.py inspect FILE
 nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
 nfprov.py convert --from=vs|pua --to=vs|pua FILE
 nfprov.py strip FILE
+nfprov.py render [--strip] [--no-merge-whitespace] FILE
 nfprov.py --selftest
 ```
 
 `FILE` may be `-` for stdin; output goes to stdout unless `-o`/`--output` is
 given. `inspect` prints a `key: value` report of per-state counts plus any
 unrecognised selectors and PUA code points. `strip` warns on stderr that it is
-lossy before writing. `--mode=pua` is only valid with `--ai`, since there is no
-PUA encoding for the other states. `--selftest` runs the internal round-trip
-tests used by CI.
+lossy before writing. `render` writes escaped HTML and wraps marked runs in
+spans as defined in `decorator/DECORATOR.md`. `--mode=pua` is only valid with
+`--ai`, since there is no PUA encoding for the other states. `--selftest` runs
+encoder round trips and every decorator fixture used by CI.
+
+The script currently combines the font-workflow encoder, diagnostic commands,
+and the decorator renderer. The proposed repository split in
+[ADR 0006](../../../docs/adr/0006-decorator-packages-and-repository.md) would
+extract the shared parsing code and renderer. The encoder and font verification
+would remain in this fork.
 
 Cluster rules for `mark`:
 
@@ -558,6 +595,7 @@ loaded through `@font-face` from a local HTTP server, on macOS.
 | Safari, Orion                     | No visual difference: base glyphs rendered, no marks    |
 | CoreText (`CTLineCreateWithAttributedString`) | Selector encoding: base glyph, selector dropped. PUA encoding: `.ai` glyph |
 | Terminal.app                      | Selectors dropped, no marks; PUA line marked            |
+| WebKit headless (Playwright)      | Font path untested. Span path (`decorator/`): marks rendered from CSS, selectors retained on copy. Same on Chromium. |
 | rio                               | Selectors dropped, no marks; PUA line marked            |
 | Zed 1.18.1 (installed Agave P+)   | Plain base glyphs, expected. Separate spacing artifact, see `zed-about.md` |
 | VS Code editor                    | Correct: selector and PUA lines both marked             |

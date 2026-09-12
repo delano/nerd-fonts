@@ -126,6 +126,7 @@ jobs:
         run: |
           python3 bin/scripts/nfprov.py --selftest
           python3 bin/scripts/test-provenance.py --selftest
+          node src/glyphs/provenance/decorator/check_fixtures.mjs
 
       - name: Patcher provenance
         run: |
