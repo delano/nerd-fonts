@@ -1,5 +1,10 @@
 # Goal
 
+> Moved. The canonical copy of this document is in the protocol
+> repository, <https://github.com/textprov/textprov> (docs/GOAL.md). This copy
+> is kept until the fork consumes the published packages (ADR 0006) and
+> should not be edited; protocol changes go to the protocol repository.
+
 Let page authors show provenance-marked text without requiring readers to
 install a font or changing the producer. A decorator detects marks in text,
 wraps marked runs in HTML spans, and lets CSS display the state.

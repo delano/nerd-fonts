@@ -6,6 +6,9 @@
  *# [Nerd Fonts]  Mapping version: 1 (see src/glyphs/provenance/mapping.json;
  *# [Nerd Fonts]  the registry is embedded below as SELECTORS and PUA_RANGES)
  *#
+ *# Downstream copy. Canonical: https://github.com/textprov/textprov
+ *# (js/textprov.js, js/textprov.css). See ADR 0006.
+ *#
  *# Renders in-band provenance marks (selector or PUA encoding) as HTML spans
  *# carrying a class and a data-prov attribute. No font is required to see the
  *# marks; see css/nfprov.css for the accompanying visual styles.

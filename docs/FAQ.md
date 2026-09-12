@@ -55,8 +55,8 @@ mark-tiling work on full-width cells in issue #20 is a preview of that cost.
 ### Where the question does not arise
 
 Two of the three consumer paths need no font and no patcher at all. HTML spans
-([ADR 0001](adr/0001-render-marks-as-html-spans.md)) and editor decoration APIs
-([ADR 0009](adr/0009-editor-decoration-apis.md)) carry provenance without
+([ADR 0001](https://github.com/textprov/textprov/blob/main/docs/adr/0001-render-marks-as-html-spans.md)) and editor decoration APIs
+([ADR 0009](https://github.com/textprov/textprov/blob/main/docs/adr/0009-editor-decoration-apis.md)) carry provenance without
 touching font binaries.
 
 The patcher earns its keep only where provenance must be visible in a plain

@@ -5,6 +5,9 @@
  *# [Nerd Fonts]  Decorator contract version: 1 (see src/glyphs/provenance/decorator/DECORATOR.md)
  *# [Nerd Fonts]  Mapping version: 1 (see src/glyphs/provenance/mapping.json)
  *#
+ *# Downstream copy. Canonical: https://github.com/textprov/textprov
+ *# (js/textprov.js, js/textprov.css). See ADR 0006.
+ *#
  *# Pairs with nfprov.js. Not part of the decorator contract (DECORATOR.md
  *# "Not specified: Visual style") but reproduces the P+ font's own marks so a
  *# page looks the same with or without the font installed:

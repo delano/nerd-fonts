@@ -1,5 +1,10 @@
 # Provenance decorator contract
 
+> Moved. The canonical copy of this document is in the protocol
+> repository, <https://github.com/textprov/textprov> (SPEC.md). This copy
+> is kept until the fork consumes the published packages (ADR 0006) and
+> should not be edited; protocol changes go to the protocol repository.
+
 Version 1. Depends on mapping.json version 1.
 
 A decorator takes text containing in-band provenance marks and produces the

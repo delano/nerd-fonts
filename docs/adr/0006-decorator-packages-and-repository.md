@@ -1,6 +1,25 @@
 # 0006. Protocol repository and ecosystem packages
 
-Status: proposed. Date: 2026-09-11.
+Status: accepted. Date: 2026-09-11. Accepted: 2026-09-12.
+
+## Outcome
+
+The protocol repository exists: <https://github.com/textprov/textprov>. It owns
+the specification, the canonical `mapping.json`, `fixtures.json`, the
+JavaScript and Python reference implementations, and the consumer-side records
+(ADRs 0001-0004, 0006, 0008-0010, which are no longer duplicated here). The
+protocol is named TextProv; the packages are `@textprov/decorator` and
+`textprov`. The CSS class prefix stays `prov`. That repository's copy of this
+record is the current one and states what moved and what did not.
+
+This fork keeps the producer: `font-patcher --provenance`, the encoder half of
+`bin/scripts/nfprov.py`, `bin/scripts/test-provenance.py`, ADR 0005, ADR 0007,
+and the fork-specific documentation. Its copies of `mapping.json`, the
+decorator, and the fixture are downstream duplicates of the protocol repository
+until the packages are published; changes to the protocol go there first. The
+remaining work on this side is to consume the published Python package and read
+the registry from it. The text below is the proposal as written before the
+split; it is kept as the record of the reasoning.
 
 ## Context
 

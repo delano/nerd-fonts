@@ -1,5 +1,10 @@
 # Rendering provenance marks in HTML without the font
 
+> Moved. The canonical copy of this document is in the protocol
+> repository, <https://github.com/textprov/textprov> (docs/HTML-RENDERING.md). This copy
+> is kept until the fork consumes the published packages (ADR 0006) and
+> should not be edited; protocol changes go to the protocol repository.
+
 Status: prototype, not in the repository. Measured 2026-09-11 on macOS
 (Darwin 27) with Playwright builds of Chromium (1243) and WebKit 26.5 (2358),
 system font only, no P+ font loaded. Prototype code lived in a session
