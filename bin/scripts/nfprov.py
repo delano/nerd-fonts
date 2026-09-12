@@ -3,6 +3,10 @@
 # Script Version: 1.0.0
 # Reference encoder/decoder for inline typographic provenance
 #
+# Downstream copy. The protocol, this tool, and its tests are canonical at
+# https://github.com/textprov/textprov (python/textprov). This copy stays
+# until that package is published; see docs/adr/0006 here and ADR 0011 there.
+#
 ### DEPENDENCY:
 #     Python 3 standard library only
 #

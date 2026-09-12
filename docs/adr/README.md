@@ -15,5 +15,7 @@ Consumer-side records live in the protocol repository,
 independent of the font), 0002 (selectors stay inside span text), 0003 (decode
 PUA to base plus selector), 0004 (one fixture defines conformance), 0008 (do not
 publish PUA to the web), 0009 (editor decoration APIs), and 0010 (contributor
-identity is out of band). Numbering is shared across the two repositories, so a
-number appears in one or the other, never both. ADR 0006 records the split.
+identity is out of band), and 0011 (the producer is text processing, and a font
+is a renderer). Numbering is shared across the two repositories, so a number
+appears in one or the other, never both. ADR 0006 records the split and ADR
+0011 corrects where it drew the producer boundary.

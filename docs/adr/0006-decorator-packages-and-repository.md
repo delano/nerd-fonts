@@ -12,13 +12,18 @@ protocol is named TextProv; the packages are `@textprov/decorator` and
 `textprov`. The CSS class prefix stays `prov`. That repository's copy of this
 record is the current one and states what moved and what did not.
 
-This fork keeps the producer: `font-patcher --provenance`, the encoder half of
-`bin/scripts/nfprov.py`, `bin/scripts/test-provenance.py`, ADR 0005, ADR 0007,
-and the fork-specific documentation. Its copies of `mapping.json`, the
-decorator, and the fixture are downstream duplicates of the protocol repository
-until the packages are published; changes to the protocol go there first. The
-remaining work on this side is to consume the published Python package and read
-the registry from it. The text below is the proposal as written before the
+This fork keeps the font: `font-patcher --provenance`,
+`bin/scripts/test-provenance.py`, ADR 0005, ADR 0007, and the fork-specific
+documentation. The marker moved too, on 2026-09-12: marking text needs the
+registry and nothing else, and `font-patcher --provenance` renders marks rather
+than producing them, so it is a renderer beside HTML spans and editor
+decorations. See ADR 0011 in the protocol repository. The boundary below, which
+called the patcher the producer, is superseded. Its copies of `mapping.json`, the
+fixture, and all of `bin/scripts/nfprov.py` are downstream duplicates of the
+protocol repository until the packages are published; changes to the protocol go
+there first. The remaining work on this side is to consume the published Python
+package and read the registry from it, after which this fork holds a renderer
+and no protocol code. The text below is the proposal as written before the
 split; it is kept as the record of the reasoning.
 
 ## Context

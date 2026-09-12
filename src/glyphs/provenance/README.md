@@ -13,10 +13,11 @@ produce or consume provenance-marked text.
 The protocol itself (states, encodings, fallback behaviour, and editor
 semantics) is TextProv, specified in its own repository:
 <https://github.com/textprov/textprov>. That repository is canonical for
-`mapping.json`, the conformance fixture, and the decoder and renderer
+`mapping.json`, the conformance fixture, and the marker and decoder
 implementations; this README covers only how the protocol is wired into this
-repository, which holds the producer. The copies here are downstream until the
-fork consumes the published packages (ADR 0006).
+repository, whose part is the font: `font-patcher --provenance` renders marks
+that something else produced. The copies here are downstream until the fork
+consumes the published packages (ADR 0006, ADR 0011).
 
 Acceptance criteria (must have, may have, non-goals) and the approaches they
 rule out are in [CRITERIA.md](CRITERIA.md).
@@ -338,13 +339,12 @@ spans as defined in `decorator/DECORATOR.md`. `--mode=pua` is only valid with
 `--ai`, since there is no PUA encoding for the other states. `--selftest` runs
 encoder round trips and every decorator fixture used by CI.
 
-The script currently combines the font-workflow encoder, diagnostic commands,
-and the decorator renderer. The shared parsing code and the renderer have been
-extracted to the protocol repository as the `textprov` Python package
-([ADR 0006](../../../docs/adr/0006-decorator-packages-and-repository.md)); the
-copies here stay until that package is published, after which this script keeps
-only the encoder and the diagnostics. The encoder and font verification remain
-in this fork either way.
+The whole of this script — encoder, diagnostics, and renderer — has been
+extracted to the protocol repository as the `textprov` Python package and its
+CLI ([ADR 0006](../../../docs/adr/0006-decorator-packages-and-repository.md),
+and ADR 0011 there for why the marker went with it). The copy here stays until
+that package is published, after which the font build calls `textprov` instead.
+Font verification, `bin/scripts/test-provenance.py`, stays in this fork.
 
 Cluster rules for `mark`:
 
