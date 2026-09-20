@@ -12,7 +12,7 @@
 #
 ### USAGE:
 #     nfprov.py inspect FILE
-#     nfprov.py mark --human|--unknown|--ai [--mode=vs|pua] FILE
+#     nfprov.py mark --human|--mixed|--ai [--mode=vs|pua] FILE
 #     nfprov.py convert --from=vs|pua --to=vs|pua FILE
 #     nfprov.py strip FILE
 #     nfprov.py render [--strip] [--no-merge-whitespace] FILE
@@ -51,8 +51,8 @@ FIXTURES_PATH = os.path.join(
 
 PROG = "nfprov"
 CONTRACT_VERSION = 1  # src/glyphs/provenance/decorator/DECORATOR.md
-GENERATED_STATES = ("human", "ai", "unknown")
-PROPOSED_STATES = ("mixed", "edited")
+GENERATED_STATES = ("human", "ai", "mixed")
+PROPOSED_STATES = ("edited", "unknown")
 
 
 def load_mapping(path=MAPPING_PATH):
@@ -734,7 +734,7 @@ def main(argv=None):
     if args.command == "mark" and args.mode == "pua" and args.state != "ai":
         parser.error(
             "--mode=pua is only valid with --ai "
-            "(there is no PUA encoding for human or unknown)"
+            "(there is no PUA encoding for human or mixed)"
         )
     try:
         _, selectors, pua2base, base2pua = load_mapping(args.mapping)
