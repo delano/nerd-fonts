@@ -52,7 +52,7 @@ FIXTURES_PATH = os.path.join(
 PROG = "nfprov"
 CONTRACT_VERSION = 1  # src/glyphs/provenance/decorator/DECORATOR.md
 GENERATED_STATES = ("human", "ai", "unknown")
-RESERVED_STATES = ("edited", "mixed")
+PROPOSED_STATES = ("mixed", "edited")
 
 
 def load_mapping(path=MAPPING_PATH):

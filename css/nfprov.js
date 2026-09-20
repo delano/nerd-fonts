@@ -32,7 +32,7 @@
   // Tables from mapping.json. The registry is not loaded at runtime; these
   // constants are checked against it by decorator/check_fixtures.mjs.
   var MAPPING_VERSION = 1;
-  var SELECTORS = { human: 0xE0100, ai: 0xE0101, unknown: 0xE0102, edited: 0xE0103, mixed: 0xE0104 };
+  var SELECTORS = { human: 0xE0100, ai: 0xE0101, mixed: 0xE0102, edited: 0xE0103, unknown: 0xE0104 };
   var PUA_AI = 0x100000; // ai plane: PUA_AI(cp) = 0x100000 + cp
   // Allocated PUA code points, inclusive ranges. Anything else in the plane is
   // not a mark. v1: U+0021-U+00FF minus Zs, Cc, Cf; every entry is state ai.

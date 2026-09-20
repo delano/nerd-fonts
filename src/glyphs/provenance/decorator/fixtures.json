@@ -89,12 +89,12 @@
    ]
   },
   {
-   "name": "unknown, edited, mixed states",
+   "name": "mixed, edited, unknown states",
    "input": "a\udb40\udd02b\udb40\udd03c\udb40\udd04",
    "options": {},
    "runs": [
     {
-     "state": "unknown",
+     "state": "mixed",
      "text": "a\udb40\udd02"
     },
     {
@@ -102,7 +102,7 @@
      "text": "b\udb40\udd03"
     },
     {
-     "state": "mixed",
+     "state": "unknown",
      "text": "c\udb40\udd04"
     }
    ]

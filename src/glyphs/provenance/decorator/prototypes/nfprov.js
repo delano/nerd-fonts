@@ -1,6 +1,6 @@
 /* nfprov.js: render in-band provenance marks as HTML spans. No font needed. */
 (function (global) {
-  const VS = { 0xE0100: 'human', 0xE0101: 'ai', 0xE0102: 'unknown', 0xE0103: 'edited', 0xE0104: 'mixed' };
+  const VS = { 0xE0100: 'human', 0xE0101: 'ai', 0xE0102: 'mixed', 0xE0103: 'edited', 0xE0104: 'unknown' };
   const PUA_AI = 0x100000; // ai plane: U+100000 + base (mapping.json v1)
   const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 

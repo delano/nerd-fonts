@@ -98,9 +98,9 @@ logs a critical error naming the path and exits before touching any glyph.
 | --------------- | ------------------ | ----------------------- |
 | Explicit human  | `U+E0100` (`VS17`) | Generated               |
 | AI              | `U+E0101` (`VS18`) | Generated               |
-| Unknown         | `U+E0102` (`VS19`) | Generated               |
+| Mixed or other  | `U+E0102` (`VS19`) | Reserved; not generated |
 | Human-edited AI | `U+E0103` (`VS20`) | Reserved; not generated |
-| Mixed or other  | `U+E0104` (`VS21`) | Reserved; not generated |
+| Unknown         | `U+E0104` (`VS21`) | Generated               |
 
 These selectors are a private convention shared by encoders, decoders, and
 patched fonts. They are not registered Unicode variation sequences.
@@ -142,9 +142,9 @@ different meaning.
   "variation_selectors": {
     "human": "U+E0100",
     "ai": "U+E0101",
-    "unknown": "U+E0102",
+    "mixed": "U+E0102",
     "edited": "U+E0103",
-    "mixed": "U+E0104"
+    "unknown": "U+E0104"
   },
   "pua": {
     "U+100041": { "base": "U+0041", "provenance": "ai" }
@@ -585,7 +585,7 @@ Measured with FontForge 20251009 and HarfBuzz.
   build of the same font without `--provenance`.
 - **Cost.** About +1 s on a roughly 37 s Hack `--complete` build, and about
   4.5 % more glyphs.
-- **Reserved selectors.** `U+E0103` and `U+E0104` have no variants in the font
+- **Reserved selectors.** `U+E0102` and `U+E0103` have no variants in the font
   and fall through to the base glyph.
 
 ### Verified renderers

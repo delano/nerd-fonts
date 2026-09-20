@@ -3,9 +3,9 @@
   "variation_selectors": {
     "human": "U+E0100",
     "ai": "U+E0101",
-    "unknown": "U+E0102",
+    "mixed": "U+E0102",
     "edited": "U+E0103",
-    "mixed": "U+E0104"
+    "unknown": "U+E0104"
   },
   "pua": {
     "U+100021": {

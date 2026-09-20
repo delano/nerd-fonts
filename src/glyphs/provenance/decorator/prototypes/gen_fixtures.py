@@ -7,7 +7,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', '..', '..', '..', '..', 'bin', 'scripts'))
 import nfprov as N
 MAP, SELECTORS, PUA2BASE, _ = N.load_mapping(os.path.join(HERE, '..', 'mapping.json'))
-H, A, U, E, M = '\U000E0100', '\U000E0101', '\U000E0102', '\U000E0103', '\U000E0104'
+H, A, M, E, U = '\U000E0100', '\U000E0101', '\U000E0102', '\U000E0103', '\U000E0104'
 def mark(s, sel): return ''.join(c + sel if not c.isspace() else c for c in s)
 def pua(s): return ''.join(chr(0x100000 + ord(c)) if not c.isspace() else c for c in s)
 cases = [
@@ -17,7 +17,7 @@ cases = [
  ("ai then human, space between stays unmarked", mark("The", A) + " " + mark("fork", H), {}),
  ("human-edited first letter inside an ai word", "T" + mark("he", A), {}),
  ("unmarked text before and after a run", "The " + mark("fork", A) + " adds", {}),
- ("unknown, edited, mixed states", mark("a", U) + mark("b", E) + mark("c", M), {}),
+ ("mixed, edited, unknown states", mark("a", M) + mark("b", E) + mark("c", U), {}),
  ("combining mark: selector follows the whole cluster", "é" + A + "x" + A, {}),
  ("emoji zwj sequence: selector follows the whole cluster", "\U0001F469‍\U0001F4BB" + A + " ok" , {}),
  ("pua input decodes to base plus ai selector", pua("Hi"), {}),

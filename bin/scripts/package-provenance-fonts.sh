@@ -129,7 +129,7 @@ follows the character in the text:
 | --- | --- | --- |
 | \`U+E0100\` (VS17) | explicit human | plain glyph |
 | \`U+E0101\` (VS18) | AI | glyph with a sawtooth beneath it |
-| \`U+E0102\` (VS19) | unknown | glyph with a bar beneath it |
+| \`U+E0104\` (VS21) | unknown | glyph with a bar beneath it |
 
 So an AI-marked character is \`<character, U+E0101>\`: the selector comes
 right after the printable character it describes, and whitespace is never
