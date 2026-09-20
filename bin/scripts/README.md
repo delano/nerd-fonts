@@ -31,6 +31,7 @@ MacOS usually has a `bash` version 3; you can install a current version via Home
 * `lib/`: See its own README
 * `name_parser/`: Suite to set up sane Family and SubFamily names, used by `font-patcher` (on demand)
 * `nfprov.py`: Reference encoder/decoder for inline typographic provenance marks in text [4]
+* `package-provenance-fonts.sh`: Zip the committed provenance (P+) TTF faces per family, with licence and README, for a GitHub Release [4]
 * `optimize-original-source.sh`: Run all icons in `src/svgs` through inkscape to simplify (remove nodes and edges) [5]
 * `release.sh`: Rough process how a release is created, not used (see `.github/workflows/release.yml`)
 * `render-provenance-coretext.swift`: Render a provenance sample through CoreText (macOS) and report the glyphs it picked [4]
