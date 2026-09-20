@@ -77,13 +77,13 @@ python3 -c "import fontTools" >/dev/null 2>&1 && have_fonttools=1
 mkdir -p "$outputdir"
 sample="${outputdir}/sample.txt"
 
-# One line per provenance state. Unmarked text is "assumed human"; the other
-# three lines carry a variation selector after every cluster. The fifth line is
+# One line per provenance state. The first line is unmarked (no in-band state);
+# the other three carry a variation selector after every cluster. The fifth line is
 # AI text in the PUA encoding, which CoreText renders even though it drops the
 # selectors, so it shows whether a renderer loaded the font at all.
 {
   printf 'Unmarked text renders as the plain base glyphs.\n'
-  printf 'Explicit human text looks the same as unmarked text.\n' | python3 "$nfprov" mark --human -
+  printf 'Human-marked text looks the same as unmarked text.\n' | python3 "$nfprov" mark --human -
   printf 'AI generated text carries the provenance mark.\n' | python3 "$nfprov" mark --ai -
   printf 'Text of unknown origin has its own variant.\n' | python3 "$nfprov" mark --unknown -
   printf 'PUA encoded AI text also carries the mark.\n' | python3 "$nfprov" mark --ai --mode=pua -

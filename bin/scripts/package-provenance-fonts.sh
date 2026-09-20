@@ -127,15 +127,16 @@ follows the character in the text:
 
 | Selector | State | Rendering |
 | --- | --- | --- |
-| \`U+E0100\` (VS17) | explicit human | plain glyph |
+| \`U+E0100\` (VS17) | human | plain glyph |
 | \`U+E0101\` (VS18) | AI | glyph with a sawtooth beneath it |
 | \`U+E0104\` (VS21) | unknown | glyph with a bar beneath it |
 
 So an AI-marked character is \`<character, U+E0101>\`: the selector comes
 right after the printable character it describes, and whitespace is never
-marked. Unmarked text is treated as human. In a font without these tables the
-selectors are ignored and the text renders normally, which is the point: the
-marks travel with the words and cost nothing where they are not understood.
+marked. Unmarked text has no in-band state; the protocol takes no position on
+what it means. In a font without these tables the selectors are ignored and
+the text renders normally, which is the point: the marks travel with the
+words and cost nothing where they are not understood.
 
 \`nfprov.py\` in the fork marks, inspects, converts and strips text:
 
