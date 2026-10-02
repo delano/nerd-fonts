@@ -4,7 +4,7 @@
 #
 # Edits the repo's .gitignore to prevent patched font artifacts
 # to be included, if that font is set to be not repo-released.
-# The provenance (P+) family is release-only for every font, so its
+# The provenance (P9E) family is release-only for every font, so its
 # files are excluded as well; they are still packed into the archives.
 #
 # Example run
@@ -55,8 +55,9 @@ i=0
         echo "!patched-fonts/${dir// /\\ }/README.md"
         i=$((i + 1))
     done < <(jq -r '.fonts[] | select(.repoRelease == false) | .folderName' lib/fonts.json)
-    echo "# Provenance (P+) builds are release-only, see src/glyphs/provenance/README.md:"
+    echo "# Provenance (P9E) builds are release-only, see src/glyphs/provenance/README.md:"
     echo "patched-fonts/**/*P+-*.[ot]tf"
+    echo "patched-fonts/**/*P9E-*.[ot]tf"
     echo "${delimiter} lines end"
 } >> "${gitignore_tmp}"
 

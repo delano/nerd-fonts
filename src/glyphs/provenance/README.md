@@ -404,15 +404,15 @@ generation.
 Release builds produce both families. `gotta-patch-em-all-font-patcher!.sh`
 patches every source font twice per variant: once as the plain Nerd Font and
 once with `--provenance`, so each family directory under `patched-fonts/`
-holds the plain files and the `P+` files side by side, and the per-family
+holds the plain files and the `P9E` files side by side, and the per-family
 archives contain both. Only the plain files are committed back to the
-repository: `bin/scripts/update-gitignore.sh` adds a `patched-fonts/**/*P+-*`
-rule to `.gitignore`, so the `P+` family is distributed through the release
+repository: `bin/scripts/update-gitignore.sh` adds a `patched-fonts/**/*P9E-*`
+rule to `.gitignore`, so the `P9E` family is distributed through the release
 archives alone and does not grow the repository history.
 The style comes from the `NERDFONTS_PROVENANCE`
 environment variable (`identical`, `subtle`, or `explicit`; default `subtle`);
-`none` skips the `P+` builds. `NERDFONTS` still adds options to every call.
-Provenance stays opt-in for users, not for the build: the `P+` family is a
+`none` skips the `P9E` builds. `NERDFONTS` still adds options to every call.
+Provenance stays opt-in for users, not for the build: the `P9E` family is a
 separate install (below) and never collides with plain Nerd Fonts, which is
 the decision recorded in issue #2. `projectName` and
 `projectNameAbbreviation` in `font-patcher` do not change.
@@ -420,32 +420,41 @@ the decision recorded in issue #2. `projectName` and
 #### Family marker for provenance builds
 
 Every `--provenance` build, whichever style, appends `provenanceFamilySuffix`
-(`P+`) to the family. This is independent of `projectFork`, so upstream could
+(`P9E`) to the family. This is independent of `projectFork`, so upstream could
 adopt it as is. Existing installed Nerd Fonts are never clobbered.
 
 | Field                    | Plain build                    | Provenance build                 |
 | ------------------------ | ------------------------------ | -------------------------------- |
-| Family (ID 1)            | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P+`         |
-| Full name (ID 4)         | `Hack Nerd Font Mono Regular`  | `Hack Nerd Font Mono P+ Regular` |
-| PostScript name (ID 6)   | `HackNFM-Regular`              | `HackNFMP+-Regular`              |
-| Preferred Family (ID 16) | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P+`         |
-| Output file              | `HackNerdFontMono-Regular.ttf` | `HackNerdFontMonoP+-Regular.ttf` |
+| Family (ID 1)            | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P9E`         |
+| Full name (ID 4)         | `Hack Nerd Font Mono Regular`  | `Hack Nerd Font Mono P9E Regular` |
+| PostScript name (ID 6)   | `HackNFM-Regular`              | `HackNFMP9E-Regular`              |
+| Preferred Family (ID 16) | `Hack Nerd Font Mono`          | `Hack Nerd Font Mono P9E`         |
+| Output file              | `HackNerdFontMono-Regular.ttf` | `HackNerdFontMonoP9E-Regular.ttf` |
 
-For Regular, Bold, Italic, and Bold Italic, ID 16 is the same as ID 1. Other
-weights keep the usual split: ID 1 `JetBrainsMono Nerd Font Mono P+ ExtraBold`,
-ID 16 `JetBrainsMono Nerd Font Mono P+`. The other variants follow the same
-pattern: `HackNerdFontP+-Regular.ttf`, `JetBrainsMonoNerdFontPropoP+-Regular.ttf`.
+`P9E` is the uppercase font suffix for TextProv's `p9e` provenance
+shorthand. It succeeds the earlier `P+` suffix; existing artifacts retain
+that name until rebuilt. New output names and font-menu identities use
+`P9E` together. Installed `P+` families remain separate.
 
-`P+` was chosen over `Prov` and `with Provenance` because Family (ID 1) is
-limited to 31 characters (the Windows GDI `LF_FACESIZE` limit, enforced by
-`FontnameParser.checklen()`). `JetBrainsMono Nerd Font Mono` is already 28
-characters, so `Prov` would give 33. With `P+`, `JetBrainsMono Nerd Font Mono
-P+` and `CaskaydiaCove Nerd Font Mono P+` land at exactly 31. Known
-limitation: the Propo variant of those 13-character families
-(`JetBrainsMono Nerd Font Propo P+`) is 32; `checklen()` logs an error and
-the font is still written. The long `Nerd Font Mono` form is kept on purpose
-rather than falling back to the short `NFM` form. `+` is legal in PostScript
-names: the OpenType spec allows ASCII 33 to 126 except `[](){}<>/%`.
+Legacy family names (ID 1) fit the 31-character Windows GDI limit. Short
+families keep the complete name, such as `Hack Nerd Font Mono P9E`.
+When necessary the legacy name abbreviates `Nerd Font`, `Nerd Font Mono`,
+and `Nerd Font Propo` as `NF`, `NFM`, and `NFP`. For example, a regular
+JetBrains Mono build has ID 1 `JetBrainsMono NFM P9E` and ID 16
+`JetBrainsMono Nerd Font Mono P9E`. ID 17 accompanies ID 16 so the complete
+family still groups its styles correctly in typographically aware apps.
+Non-RIBBI weights remain part of ID 1, such as
+`JetBrainsMono NFM P9E ExtraBold`, with the complete weight in ID 17.
+
+If abbreviating the suffix is insufficient, the legacy source-name prefix
+is shortened with a stable six-digit digest. The width, `P9E` marker and
+style stay intact; the complete typographic family and output filename
+retain the source name. The validator rejects ID 1 names over 31 characters
+instead of accepting the old Propo overflow.
+
+These fonts are development, debugging and demonstration adjuncts.
+Applications that display TextProv text choose their own visual treatment
+of provenance labels; the sawtooth is a renderer choice.
 
 #### Fork marker
 
@@ -487,18 +496,18 @@ because macOS applications rasterise differently and a mark that is clear in
 
 ```bash
 swift bin/scripts/render-provenance-coretext.swift \
-  temp/provenance-example/explicit/HackNerdFontP+-Regular.ttf \
+  temp/provenance-example/explicit/HackNerdFontP9E-Regular.ttf \
   temp/provenance-example/sample.txt temp/provenance-example/explicit-coretext-16.png 16
 ```
 
 Only the PUA line carries a mark in that render, because CoreText drops the
 selectors (see "Observed behaviour"). Render at 16 for terminal sizes and at
-40 to see the shapes. Passing `name:AgaveNFMP+-Regular` instead of a path
+40 to see the shapes. Passing `name:AgaveNFMP9E-Regular` instead of a path
 uses the installed font and prints the file CoreText resolved it to, which is
 the check that a reinstalled font, not a stale copy, is being used.
 
 The manual steps below cover the same ground in more detail. Use a scratch output directory and do not commit generated fonts.
-Provenance builds are written as `HackNerdFontP+-Regular.ttf` next to the plain
+Provenance builds are written as `HackNerdFontP9E-Regular.ttf` next to the plain
 `HackNerdFont-Regular.ttf`, so both can share one output directory without
 overwriting each other.
 
@@ -512,16 +521,16 @@ fontforge --script ./font-patcher src/unpatched-fonts/Hack/Hack-Regular.ttf \
 
 python3 bin/scripts/test-provenance.py \
   --reference "$out/HackNerdFont-Regular.ttf" \
-  "$out/HackNerdFontP+-Regular.ttf"
+  "$out/HackNerdFontP9E-Regular.ttf"
 
 # Both inputs must shape to A.ai.
-hb-shape "$out/HackNerdFontP+-Regular.ttf" -u "0041,E0101"
-hb-shape "$out/HackNerdFontP+-Regular.ttf" -u "100041"
+hb-shape "$out/HackNerdFontP9E-Regular.ttf" -u "0041,E0101"
+hb-shape "$out/HackNerdFontP9E-Regular.ttf" -u "100041"
 
 # Ligature behaviour, on a font that has calt ligatures.
 fontforge --script ./font-patcher src/unpatched-fonts/FiraCode/FiraCode-Regular.ttf \
   --complete --provenance=subtle --debug 2 --outputdir "$out"
-hb-shape "$out/FiraCodeNerdFontP+-Regular.ttf" --features=calt \
+hb-shape "$out/FiraCodeNerdFontP9E-Regular.ttf" --features=calt \
   -u "003D,E0101,003E,E0101"
 
 python3 bin/scripts/nfprov.py --selftest
@@ -532,7 +541,8 @@ Repeat for `--mono`, `--variable-width-glyphs`, and an OTF source.
 
 ### Installed Agave P+ example fonts
 
-The renderer checks below that name "Agave P+" use six fonts installed in
+These historical renderer checks retain their original `P+` artifact names.
+Current rebuilds use `P9E`. The checks below that name "Agave P+" use six fonts installed in
 `~/Library/Fonts`, not the tracked `patched-fonts/Agave/` release builds. The
 tracked builds are plain `--complete` fonts with no provenance glyphs. The
 installed set is built from the unpatched Agave sources with the default symbol
@@ -653,6 +663,6 @@ with `RIO_CONFIG_HOME` pointing at a scratch config, and VS Code with a scratch
   this directory.
 - `Dockerfile`: no new runtime dependency.
 - `fonts.json`, the release matrix, and archive layout. Plain builds also keep
-  their upstream family names; only `--provenance` builds get the `P+` marker.
+  their upstream family names; only `--provenance` builds get the `P9E` marker.
 
 [wiki-conflicts]: https://github.com/ryanoasis/nerd-fonts/wiki/Codepoint-Conflicts

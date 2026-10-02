@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Subset a P+ font to a woff2 webfont for HarfBuzz browsers (ADR 0005).
+# Subset a P9E font to a woff2 webfont for HarfBuzz browsers (ADR 0005).
 #
 # Keeps ASCII, Latin-1, the five provenance selectors and the PUA plane, so
 # the format 14 cmap and the marked variants survive. Everything else,

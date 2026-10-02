@@ -6,7 +6,7 @@
 # That option will override the defaults (also defaults of THIS script).
 #
 # Every font is patched twice: once as a plain Nerd Font and once with
-# --provenance, which yields the separate "P+" family next to it. The
+# --provenance, which yields the separate "P9E" family next to it. The
 # presentation style comes from NERDFONTS_PROVENANCE (identical, subtle, or
 # explicit; default subtle). Set it to "none" to build only the plain fonts.
 
@@ -82,9 +82,9 @@ function show_help {
   echo
   echo "    ENVIRONMENT:"
   echo "        NERDFONTS             Extra options passed to every font-patcher call"
-  echo "        NERDFONTS_PROVENANCE  Style of the additional P+ (provenance) family built"
+  echo "        NERDFONTS_PROVENANCE  Style of the additional P9E (provenance) family built"
   echo "                              next to each plain font: identical, subtle (default),"
-  echo "                              explicit, or none to skip the P+ builds"
+  echo "                              explicit, or none to skip the P9E builds"
   echo
   echo "    FILTER:"
   echo "        The filter argument to this script is a filter for the fonts to patch."
@@ -245,7 +245,7 @@ echo "$LINE_PREFIX Release timestamp is ${release_timestamp}"
 # $2 = config file option (or "-q" when there is none)
 # $3 = destination directory
 # $4 = variant option: "" (normal), "-s" (Mono), or "--variable" (Propo)
-# $5 = provenance option: "" (plain family) or "--provenance=<style>" (P+ family)
+# $5 = provenance option: "" (plain family) or "--provenance=<style>" (P9E family)
 function run_patcher {
   local f=$1; shift
   local font_config=$1; shift
@@ -344,7 +344,7 @@ function patch_font {
   # Use absolute path to allow fontforge being an AppImage (used in CI)
   PWD=$(pwd)
   # Create "Nerd Font", "Nerd Font Mono", and "Nerd Font Propo", each as the plain
-  # family and (unless NERDFONTS_PROVENANCE=none) as the "P+" family
+  # family and (unless NERDFONTS_PROVENANCE=none) as the "P9E" family
   local variant_args
   for variant_args in "" "-s" "--variable"
   do

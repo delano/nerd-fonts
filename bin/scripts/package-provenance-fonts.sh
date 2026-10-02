@@ -2,14 +2,14 @@
 # Nerd Fonts Version: 3.5.1
 # Script Version: 1.0.0
 #
-# Package the committed provenance (P+) desktop fonts for a GitHub Release.
+# Package rebuilt provenance (P9E) desktop fonts for a GitHub Release.
 #
 # For each family this script
 #   1. copies the four text faces (Regular, Italic, Bold, BoldItalic) as TTF,
 #   2. validates each TTF with `test-provenance.py`,
 #   3. adds the upstream licence text and a generated README.md that records
 #      the build identity (source commit, Nerd Fonts version, provenance profile),
-#   4. zips the result as <family>-provenance-p-plus.zip.
+#   4. zips the result as <family>-provenance-p9e.zip.
 #
 # TTF is the desktop installation format. The WOFF2 files beside the TTFs in
 # patched-fonts/*/patched/ are webfont builds for @font-face and are not packaged.
@@ -68,7 +68,7 @@ EOF
 # package <slug> <file-prefix> <menu-name> <src-dir> <licence-zip> <licence-member> <licence-name> <upstream-name> <upstream-note>
 package() {
   local slug=$1 prefix=$2 menu=$3 src=$4 lzip=$5 lmember=$6 lname=$7 upstream=$8 note=$9
-  local dir="${out}/${slug}-provenance-p-plus"
+  local dir="${out}/${slug}-provenance-p9e"
   rm -rf "$dir"
   mkdir -p "$dir"
 
@@ -105,7 +105,7 @@ ${note}
 | Packager | \`bin/scripts/package-provenance-fonts.sh\` |
 
 The faces were produced by \`font-patcher --complete --variable-width-glyphs
---provenance=explicit\` and are committed in the fork under
+--provenance=explicit\` and are rebuilt in the fork under
 \`patched-fonts/\`. Rebuild instructions are in the family's markdown file
 next to them.
 
@@ -119,7 +119,7 @@ Install the four TTF files like any other font:
 
 The family appears in font menus as **${menu}**.
 
-## What the P+ marks are
+## What the P9E marks are
 
 The font contains an alternate glyph for every printable character in the
 Latin-1 range. The alternate is selected by a Unicode variation selector that
@@ -162,19 +162,19 @@ distributed under the same terms. The upstream copyright and trademark
 notices are retained in the font's name table.
 EOF
 
-  ( cd "$out" && rm -f "${slug}-provenance-p-plus.zip" && zip -q -r "${slug}-provenance-p-plus.zip" "${slug}-provenance-p-plus" )
-  printf '%8d  %s\n' "$(stat -f %z "${out}/${slug}-provenance-p-plus.zip" 2>/dev/null || stat -c %s "${out}/${slug}-provenance-p-plus.zip")" "${slug}-provenance-p-plus.zip"
+  ( cd "$out" && rm -f "${slug}-provenance-p9e.zip" && zip -q -r "${slug}-provenance-p9e.zip" "${slug}-provenance-p9e" )
+  printf '%8d  %s\n' "$(stat -f %z "${out}/${slug}-provenance-p9e.zip" 2>/dev/null || stat -c %s "${out}/${slug}-provenance-p9e.zip")" "${slug}-provenance-p9e.zip"
 }
 
 mkdir -p "$out"
 
-package zilla-slab ZillaSlabNerdFontPropoP+ "ZillaSlab Nerd Font Propo P+" \
+package zilla-slab ZillaSlabNerdFontPropoP9E "ZillaSlab Nerd Font Propo P9E" \
   "${repo}/patched-fonts/zilla/patched" \
   "${repo}/patched-fonts/zilla/zilla.zip" zilla-slab/LICENSE LICENSE \
   "Zilla Slab" \
   "Zilla Slab is Copyright 2017, The Mozilla Foundation. Zilla is a trademark of The Mozilla Corporation."
 
-package maryheather MaryheatherNerdFontPropoP+ "Maryheather Nerd Font Propo P+" \
+package maryheather MaryheatherNerdFontPropoP9E "Maryheather Nerd Font Propo P9E" \
   "${repo}/patched-fonts/maryheather/patched" \
   "${repo}/patched-fonts/maryheather/merriweather.zip" Merriweather-1.582/OFL.txt OFL.txt \
   "Merriweather" \
