@@ -16,6 +16,9 @@ class FontnameParser:
         self.family_suff = ''
         self.ps_fontname_suff = ''
         self.short_family_suff = ''
+        # Optional renderer-specific shortening of legacy ID 1 names. ID 16
+        # retains the complete family name for typographically aware apps.
+        self.legacy_family_transform = None
         self.name_subst = []
         [ self.parse_ok, self._basename, self.weight_token, self.style_token, self.other_token, self._rest ] = FontnameTools.parse_font_name(fontname)
         self.basename = self._basename
@@ -197,6 +200,8 @@ class FontnameParser:
             if self.use_short_families[1]:
                 [ other ] = FontnameTools.short_styles([ other ], self.use_short_families[2])
             pfn = FontnameTools.concat(name, rest, other, self.short_family_suff)
+            if self.legacy_family_transform:
+                pfn = self.legacy_family_transform(pfn)
             # Only return something if it is different to our standard behavior
             if pfn == self.preferred_family(False):
                 return ''
@@ -214,8 +219,9 @@ class FontnameParser:
         # For naming purposes we want Oblique to be part of the styles
         (weights, styles) = FontnameTools.make_oblique_style(weights, styles)
         pfs = FontnameTools.concat(weights, styles)
-        if self.suppress_preferred_if_identical and pfs == self.subfamily():
-            # Do not set if identical to ID 2
+        if (self.suppress_preferred_if_identical and pfs == self.subfamily()
+                and (not self.legacy_family_transform or not self.preferred_family(False))):
+            # A shortened provenance ID 1 still needs the complete ID 16/17 pair.
             return ''
         return pfs
 
@@ -237,7 +243,8 @@ class FontnameParser:
                 new_weights.append(w)
                 continue
             new_weights.append(FontnameTools.known_slope_types[w][1])
-        return FontnameTools.concat(name, rest, other, self.short_family_suff, new_weights)
+        family = FontnameTools.concat(name, rest, other, self.short_family_suff, new_weights)
+        return self.legacy_family_transform(family) if self.legacy_family_transform else family
 
     def subfamily(self):
         """Get the SFNT SubFamily (ID 2)"""
@@ -259,6 +266,8 @@ class FontnameParser:
         fam = self.preferred_family(False)
         if len(fam) < 1:
             fam = self.family()
+        if self.legacy_family_transform:
+            return self.legacy_family_transform(fam)
         return self._make_ps_name(fam, True)
 
     def macstyle(self, style):
@@ -328,7 +337,8 @@ class FontnameParser:
         ret = [ ]
         for i in range(maxnum):
             if len(names[i]):
-                ret += [( languages[i], entry, self.checklen(31, message, names[i]) )]
+                limit = 63 if self.legacy_family_transform and entry == 'Preferred Family' else 31
+                ret += [( languages[i], entry, self.checklen(limit, message, names[i]) )]
             else:
                 break
         return ret

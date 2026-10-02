@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Nerd Fonts Version: 3.5.1
-# Script Version: 1.1.0
+# Script Version: 1.2.0
 # CI validator for provenance-patched fonts
 #
 ### DEPENDENCY:
@@ -17,6 +17,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -153,7 +154,7 @@ def name_record(font, name_id):
 
 def check_names(font, profile, reference=None):
     """Assert the naming conventions font-patcher --provenance applies."""
-    suffix = " P+"
+    suffix = " P9E"
     family = name_record(font, 1) or ""
     full = name_record(font, 4) or ""
     postscript = name_record(font, 6) or ""
@@ -161,22 +162,20 @@ def check_names(font, profile, reference=None):
     version = name_record(font, 5) or ""
     typo_family = name_record(font, 16)
 
-    report(family.endswith(suffix), "ID 1 family ends with P+", family)
-    report(" P+" in full, "ID 4 full name contains P+", full)
-    report("P+" in postscript.split("-", 1)[0],
-           "ID 6 PostScript name has P+ before the hyphen", postscript)
+    report(re.search(r" P9E(?: |$)", family), "ID 1 family contains P9E", family)
+    report(re.search(r" P9E(?: |$)", full), "ID 4 full name contains P9E", full)
+    report("P9E" in postscript.rsplit("-", 1)[0],
+           "ID 6 PostScript name has P9E before the style", postscript)
     if typo_family is not None:
-        report(typo_family.endswith(suffix), "ID 16 typographic family ends with P+",
+        report(typo_family.endswith(suffix), "ID 16 typographic family ends with P9E",
                typo_family)
+        report(bool(name_record(font, 17)), "ID 16 has a paired typographic style (ID 17)")
 
-    # ID 1 must fit the 31 character legacy limit. The only accepted overflow is
-    # the " Propo P+" form at exactly 32 (JetBrainsMono Nerd Font Propo P+).
-    if len(family) == 32 and family.endswith(" Propo P+"):
-        print("INFO: ID 1 family is 32 chars, accepted Propo overflow ({})".format(
-            family))
-    else:
-        report(len(family) <= 31, "ID 1 family length <= 31",
-               "{} chars: {}".format(len(family), family))
+    report(len(family) <= 31, "ID 1 family length <= 31",
+           "{} chars: {}".format(len(family), family))
+    old_names = [str(record.nameID) for record in font["name"].names
+                 if record.nameID in (1, 3, 4, 6, 16) and "P+" in record.toUnicode()]
+    report(not old_names, "font identity names contain no legacy P+ suffix", ", ".join(old_names))
 
     # ID 5 segments: [...;][fork;]NFProv <profile>;Nerd Fonts <ver>
     segments = version.split(";")

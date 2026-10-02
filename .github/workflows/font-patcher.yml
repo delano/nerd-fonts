@@ -3,11 +3,14 @@ name: "Font-Patcher"
 
 on:
   pull_request:
-    branches: [ master, main ]
+    branches: [ master, main, delano/self-added-fonts ]
     paths:
       - 'font-patcher'
       - 'src/glyphs/**'
       - 'bin/scripts/lib/i*.sh'
+      - 'bin/scripts/name_parser/**'
+      - 'bin/scripts/test-provenance.py'
+      - '.github/workflows/font-patcher.yml'
 
 jobs:
   tests:
@@ -139,7 +142,7 @@ jobs:
         run: |
           python3 bin/scripts/test-provenance.py \
           --reference "$GITHUB_WORKSPACE/temp/HackNerdFont-Regular.ttf" \
-          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontP+-Regular.ttf"
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontP9E-Regular.ttf"
 
       - name: Patcher provenance monospaced
         run: |
@@ -150,7 +153,16 @@ jobs:
         run: |
           python3 bin/scripts/test-provenance.py \
           --reference "$GITHUB_WORKSPACE/temp/HackNerdFontMono-Regular.ttf" \
-          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontMonoP+-Regular.ttf"
+          "$GITHUB_WORKSPACE/temp/prov/HackNerdFontMonoP9E-Regular.ttf"
+
+      - name: Check provenance names with long families and non-RIBBI styles
+        run: |
+          fontforge --script ./font-patcher src/unpatched-fonts/JetBrainsMono/Ligatures/JetBrainsMono-Regular.ttf \
+          --mono --provenance=explicit --quiet --no-progressbars --outputdir "$GITHUB_WORKSPACE/temp/prov/"
+          fontforge --script ./font-patcher src/unpatched-fonts/JetBrainsMono/Ligatures/JetBrainsMono-ExtraBoldItalic.ttf \
+          --variable-width-glyphs --provenance=explicit --quiet --no-progressbars --outputdir "$GITHUB_WORKSPACE/temp/prov/"
+          python3 bin/scripts/test-provenance.py "$GITHUB_WORKSPACE/temp/prov/JetBrainsMonoNerdFontMonoP9E-Regular.ttf"
+          python3 bin/scripts/test-provenance.py "$GITHUB_WORKSPACE/temp/prov/JetBrainsMonoNerdFontPropoP9E-ExtraBoldItalic.ttf"
 
       - name: Check if font with references is patched
         # (patch result not checked)
